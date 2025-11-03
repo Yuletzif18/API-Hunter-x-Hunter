@@ -1,0 +1,30 @@
+
+require('dotenv').config();
+const express = require('express');
+const { Sequelize } = require('sequelize');
+const personajeRoutes = require('./routes/personajeRoutes');
+const habilidadRoutes = require('./routes/habilidad/habilidadRoutes');
+
+
+const cors = require('cors');
+const { swaggerSpec, swaggerUi } = require('./swagger');
+
+// Servidor único para personajes y habilidades
+const app = express();
+const sequelizePersonajes = new Sequelize(process.env.MYSQL_URI_PERSONAJES);
+const sequelizeHabilidades = new Sequelize(process.env.MYSQL_URI_HABILIDADES);
+const Personaje = require('./models/personaje')(sequelizePersonajes);
+const Habilidad = require('./models/habilidad/habilidad')(sequelizeHabilidades);
+app.use(cors());
+app.use(express.json());
+app.use('/api/personajes', personajeRoutes);
+app.use('/api/habilidades', habilidadRoutes);
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const PORT = process.env.PORT || 3002;
+
+Promise.all([
+  sequelizePersonajes.sync(),
+  sequelizeHabilidades.sync()
+]).then(() => {
+  app.listen(PORT, () => console.log(`API de personajes y habilidades corriendo en puerto ${PORT}`));
+});

@@ -1,0 +1,227 @@
+openapi: 3.1.0
+info:
+  title: API Hunter x Hunter
+  version: "1.0.0"
+  description: "Documentación de los microservicios Personajes y Habilidades. Endpoints públicos en Render."
+servers:
+  - url: https://api-hunterxhunter.onrender.com
+    description: API pública Render
+tags:
+  - name: personajes
+    description: Operaciones sobre personajes
+    externalDocs:
+      description: Documentación API Personajes
+      url: https://api-hunterxhunter.onrender.com/api/personajes
+  - name: habilidades
+    description: Operaciones sobre habilidades
+    externalDocs:
+      description: Documentación API Habilidades
+      url: https://api-hunterxhunter.onrender.com/api/habilidades
+paths:
+  /api/personajes:
+    get:
+      tags:
+        - personajes
+      summary: Obtiene todos los personajes
+      responses:
+        '200':
+          description: Lista de personajes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Personaje'
+    post:
+      tags:
+        - personajes
+      summary: Crea un nuevo personaje
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Personaje'
+      responses:
+        '201':
+          description: Personaje creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Personaje'
+        '400':
+          description: Datos inválidos
+  /api/personajes/{id}:
+    put:
+      tags:
+        - personajes
+      summary: Actualiza un personaje por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Personaje'
+      responses:
+        '200':
+          description: Personaje actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Personaje'
+        '400':
+          description: Datos inválidos
+        '404':
+          description: Personaje no encontrado
+    delete:
+      tags:
+        - personajes
+      summary: Elimina un personaje por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Personaje eliminado exitosamente
+        '404':
+          description: Personaje no encontrado
+  /api/habilidades:
+    get:
+      tags:
+        - habilidades
+      summary: Obtiene todas las habilidades
+      responses:
+        '200':
+          description: Lista de habilidades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Habilidad'
+    post:
+      tags:
+        - habilidades
+      summary: Crea una nueva habilidad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Habilidad'
+      responses:
+        '201':
+          description: Habilidad creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habilidad'
+        '400':
+          description: Datos inválidos
+  /api/habilidades/{id}:
+    put:
+      tags:
+        - habilidades
+      summary: Actualiza una habilidad por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Habilidad'
+      responses:
+        '200':
+          description: Habilidad actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habilidad'
+        '400':
+          description: Datos inválidos
+        '404':
+          description: Habilidad no encontrada
+    delete:
+      tags:
+        - habilidades
+      summary: Elimina una habilidad por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Habilidad eliminada exitosamente
+        '404':
+          description: Habilidad no encontrada
+components:
+  schemas:
+    Personaje:
+      type: object
+      required:
+        - nombre
+        - edad
+        - altura
+        - peso
+        - urlImagen
+      properties:
+        nombre:
+          type: string
+          example: Gon Freecss
+        edad:
+          type: integer
+          example: 12
+        altura:
+          type: integer
+          example: 154
+        peso:
+          type: integer
+          example: 49
+        urlImagen:
+          type: string
+          example: https://example.com/gon.jpg
+        genero:
+          type: string
+          example: Masculino
+        descripcion:
+          type: string
+          example: Protagonista de Hunter x Hunter
+        habilidad:
+          type: string
+          example: Nen
+        origen:
+          type: string
+          example: Ballena Island
+    Habilidad:
+      type: object
+      required:
+        - nombre
+      properties:
+        nombre:
+          type: string
+          example: Jajanken
+        tipo:
+          type: string
+          example: Ataque
+        descripcion:
+          type: string
+          example: Técnica especial de Gon
+        personaje:
+          type: string
+          example: Gon Freecss
