@@ -11,7 +11,7 @@ module.exports = (sequelize) => {
     habilidad: DataTypes.STRING,
     origen: DataTypes.STRING
   }, {
-    tableName: 'personajes_hunterXhunter',
+    tableName: 'personajes_hunterxhunter',
     timestamps: false
   });
 };
