@@ -6,9 +6,7 @@ buildCommand = "cd hxh-mysql-backend && npm install"
 startCommand = "cd hxh-mysql-backend && node app.js"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
-
-[[deploy.healthcheckPath]]
-path = "/health"
+healthcheckPath = "/health"
 
 [deploy.regions]
 use = ["ap-southeast-1"]
