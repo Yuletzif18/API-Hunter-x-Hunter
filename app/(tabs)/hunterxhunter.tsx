@@ -1,324 +1,153 @@
-import React, { useState } from 'react';
-import { Alert, Button, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useCaballero } from '@/components/CaballeroContext';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// APIs disponibles
-const APIS = {
-  MONGODB: {
-    personajes: 'https://api-hunter-x-hunter-mongodb.up.railway.app/api/personajes',
-    habilidades: 'https://api-hunter-x-hunter-mongodb.up.railway.app/api/habilidades',
+// APIs disponibles - MongoDB y MySQL
+const APIS = [
+  {
+    nombre: 'MongoDB Personajes',
+    url: 'https://api-hunter-x-hunter-mongodb.up.railway.app/api/personajes',
+    tipo: 'personajes'
   },
-  MYSQL: {
-    personajes: 'https://api-hunter-x-hunter-production.up.railway.app/api/personajes',
-    habilidades: 'https://api-hunter-x-hunter-mysql.up.railway.app/api/habilidades',
+  {
+    nombre: 'MySQL Personajes',
+    url: 'https://api-hunter-x-hunter-production.up.railway.app/api/personajes',
+    tipo: 'personajes'
+  },
+  {
+    nombre: 'MongoDB Habilidades',
+    url: 'https://api-hunter-x-hunter-mongodb.up.railway.app/api/habilidades',
+    tipo: 'habilidades'
+  },
+  {
+    nombre: 'MySQL Habilidades',
+    url: 'https://api-hunter-x-hunter-mysql.up.railway.app/api/habilidades',
+    tipo: 'habilidades'
   }
-};
+];
 
 const HunterXHunterScreen: React.FC = () => {
-  // Selector de API: MongoDB o MySQL
-  const [apiType, setApiType] = useState<'MONGODB' | 'MYSQL'>('MONGODB');
   const { setCaballero } = useCaballero();
+  const [personajesData, setPersonajesData] = useState<any[]>([]);
+  const [habilidadesData, setHabilidadesData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Estados para el CRUD
-  const [nombre, setNombre] = useState('');
-  const [item, setItem] = useState<any>(null);
-  const [lista, setLista] = useState<any[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [itemEdit, setItemEdit] = useState<any>(null);
+  // Cargar datos de todas las APIs al montar el componente
+  useEffect(() => {
+    cargarDatos();
+  }, []);
   
-  // Estados del formulario (personajes)
-  const [formPersonaje, setFormPersonaje] = useState({
-    nombre: '', edad: '', altura: '', peso: '', urlImagen: '', genero: '', descripcion: '', habilidad: '', origen: ''
-  });
-  
-  const API_URL = APIS[apiType].personajes;
-  
-  // Consultar item por nombre
-  const consultarItem = async () => {
-    try {
-      if (!nombre.trim()) {
-        Alert.alert('Aviso', 'Ingresa el nombre del personaje');
-        return;
-      }
-      
-      const res = await fetch(API_URL);
-      if (res.ok) {
-        const items = await res.json();
-        const found = items.find((i: any) => i.nombre.toLowerCase() === nombre.toLowerCase());
-        if (found) {
-          setItem(found);
-          setCaballero(found); // Guardar en Context
-          Alert.alert('Encontrado', `Personaje encontrado: ${found.nombre}\n\nVe a la pestaña "About" para ver todos los detalles y habilidades.`);
-        } else {
-          setItem(null);
-          Alert.alert('No encontrado', 'No existe en la base de datos');
-        }
-      } else {
-        setItem(null);
-        Alert.alert('Error', 'No se pudo consultar');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error de conexión', 'No se pudo conectar al servidor');
-    }
-  };
-  
-  // Insertar nuevo item
-  const insertarItem = async () => {
-    try {
-      const body = formPersonaje;
-      
-      // Validación
-      if (!body.nombre.trim()) {
-        Alert.alert('Error', 'El nombre es obligatorio');
-        return;
-      }
-      
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      
-      if (res.ok) {
-        Alert.alert('Éxito', 'Personaje insertado correctamente');
-        setModalVisible(false);
-        // Limpiar formulario
-        setFormPersonaje({ nombre: '', edad: '', altura: '', peso: '', urlImagen: '', genero: '', descripcion: '', habilidad: '', origen: '' });
-      } else {
-        const errorData = await res.json();
-        Alert.alert('Error', errorData.error || 'No se pudo insertar');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error de conexión', 'No se pudo conectar al servidor');
-    }
-  };
-  
-  // Eliminar item
-  const eliminarItem = async () => {
-    try {
-      if (!nombre.trim()) {
-        Alert.alert('Aviso', 'Ingresa el nombre del personaje a eliminar');
-        return;
-      }
-      
-      // Primero buscar el ID
-      const res = await fetch(API_URL);
-      if (res.ok) {
-        const items = await res.json();
-        const found = items.find((i: any) => i.nombre.toLowerCase() === nombre.toLowerCase());
-        
-        if (found) {
-          const deleteRes = await fetch(`${API_URL}/${found._id}`, {
-            method: 'DELETE',
-          });
-          
-          if (deleteRes.ok) {
-            Alert.alert('Eliminado', 'Personaje eliminado correctamente');
-            setItem(null);
-            setNombre('');
-          } else {
-            Alert.alert('Error', 'No se pudo eliminar');
+  const cargarDatos = async () => {
+    setLoading(true);
+    const personajes: any[] = [];
+    const habilidades: any[] = [];
+    
+    // Cargar todas las APIs en paralelo
+    await Promise.all(
+      APIS.map(async (api) => {
+        try {
+          const res = await fetch(api.url);
+          if (res.ok) {
+            const data = await res.json();
+            if (api.tipo === 'personajes') {
+              data.forEach((item: any) => {
+                personajes.push({ ...item, fuente: api.nombre });
+              });
+            } else {
+              data.forEach((item: any) => {
+                habilidades.push({ ...item, fuente: api.nombre });
+              });
+            }
           }
-        } else {
-          Alert.alert('No encontrado', 'No existe en la base de datos');
+        } catch (error) {
+          console.error(`Error al cargar ${api.nombre}:`, error);
         }
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error de conexión', 'No se pudo conectar al servidor');
-    }
+      })
+    );
+    
+    setPersonajesData(personajes);
+    setHabilidadesData(habilidades);
+    setLoading(false);
   };
   
-  // Listar todos los items
-  const listarItems = async () => {
-    try {
-      const res = await fetch(API_URL);
-      if (res.ok) {
-        const items = await res.json();
-        setLista(items);
-        setItemEdit(null);
-        setEditModalVisible(true);
-      } else {
-        Alert.alert('Error', 'No se pudo obtener la lista');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error de conexión', 'No se pudo conectar al servidor');
-    }
+  const seleccionarPersonaje = (personaje: any) => {
+    setCaballero(personaje);
+    Alert.alert(
+      'Personaje Seleccionado',
+      `${personaje.nombre}\n\nVe a la pestaña "About" para ver todos los detalles y habilidades relacionadas.`,
+      [{ text: 'OK' }]
+    );
   };
   
-  // Actualizar item
-  const actualizarItem = async () => {
-    try {
-      if (!itemEdit || !itemEdit._id) {
-        Alert.alert('Error', 'No hay item seleccionado para actualizar');
-        return;
-      }
-      
-      const res = await fetch(`${API_URL}/${itemEdit._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(itemEdit)
-      });
-      
-      if (res.ok) {
-        Alert.alert('Actualizado', 'Personaje actualizado correctamente');
-        // Refrescar lista
-        listarItems();
-      } else {
-        const errorData = await res.json();
-        Alert.alert('Error', errorData.error || 'No se pudo actualizar');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error de conexión', 'No se pudo conectar al servidor');
-    }
-  };
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2196F3" />
+        <Text style={styles.loadingText}>Cargando datos de todas las APIs...</Text>
+      </View>
+    );
+  }
   
   return (
     <ScrollView style={styles.container}>
-      {/* Selector de API */}
-      <View style={styles.selectorContainer}>
-        <Text style={styles.selectorTitle}>Seleccionar Base de Datos:</Text>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity 
-            style={[styles.selectorButton, apiType === 'MONGODB' && styles.selectorButtonActive]}
-            onPress={() => setApiType('MONGODB')}
-          >
-            <Text style={[styles.selectorButtonText, apiType === 'MONGODB' && styles.selectorButtonTextActive]}>MongoDB</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.selectorButton, apiType === 'MYSQL' && styles.selectorButtonActive]}
-            onPress={() => setApiType('MYSQL')}
-          >
-            <Text style={[styles.selectorButtonText, apiType === 'MYSQL' && styles.selectorButtonTextActive]}>MySQL</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <Text style={styles.apiInfo}>
-          API Actual: {apiType} - {API_URL}
-        </Text>
-      </View>
+      <Text style={styles.mainTitle}>Hunter x Hunter - Personajes</Text>
+      <Text style={styles.subtitle}>Toca un personaje para ver sus detalles completos en la pestaña About</Text>
       
-      {/* Búsqueda */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Nombre del personaje"
-          value={nombre}
-          onChangeText={setNombre}
-          style={styles.input}
-        />
-        <Button title="Consultar" onPress={consultarItem} color="#2196F3" />
-      </View>
-      
-      {/* Botones CRUD */}
-      <View style={styles.crudButtons}>
-        <View style={styles.buttonWrapper}>
-          <Button title="Insertar" onPress={() => setModalVisible(true)} color="#4CAF50" />
-        </View>
-        <View style={styles.buttonWrapper}>
-          <Button title="Eliminar" onPress={eliminarItem} color="#f44336" />
-        </View>
-        <View style={styles.buttonWrapper}>
-          <Button title="Listar/Modificar" onPress={listarItems} color="#FF9800" />
-        </View>
-      </View>
-      
-      {/* Mostrar Personaje Consultado - SOLO NOMBRE E IMAGEN */}
-      {item && (
-        <View style={styles.itemContainer}>
-          <Text style={styles.itemTitle}>Personaje Encontrado:</Text>
-          {item.urlImagen && (
-            <Image source={{ uri: item.urlImagen }} style={styles.image} resizeMode="contain" />
-          )}
-          <Text style={styles.itemText}><Text style={styles.bold}>Nombre:</Text> {item.nombre}</Text>
-          <Text style={styles.infoText}>📌 Ve a la pestaña "About" para ver detalles completos y habilidades</Text>
-        </View>
-      )}
-      
-      {/* Modal Insertar */}
-      <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ScrollView>
-              <Text style={styles.modalTitle}>Insertar Personaje</Text>
-              
-              <TextInput placeholder="Nombre *" value={formPersonaje.nombre} onChangeText={v => setFormPersonaje(f => ({ ...f, nombre: v }))} style={styles.input} />
-              <TextInput placeholder="Edad" value={formPersonaje.edad} onChangeText={v => setFormPersonaje(f => ({ ...f, edad: v }))} style={styles.input} keyboardType="numeric" />
-              <TextInput placeholder="Altura (cm)" value={formPersonaje.altura} onChangeText={v => setFormPersonaje(f => ({ ...f, altura: v }))} style={styles.input} keyboardType="numeric" />
-              <TextInput placeholder="Peso (kg)" value={formPersonaje.peso} onChangeText={v => setFormPersonaje(f => ({ ...f, peso: v }))} style={styles.input} keyboardType="numeric" />
-              <TextInput placeholder="URL Imagen *" value={formPersonaje.urlImagen} onChangeText={v => setFormPersonaje(f => ({ ...f, urlImagen: v }))} style={styles.input} />
-              <TextInput placeholder="Género" value={formPersonaje.genero} onChangeText={v => setFormPersonaje(f => ({ ...f, genero: v }))} style={styles.input} />
-              <TextInput placeholder="Descripción" value={formPersonaje.descripcion} onChangeText={v => setFormPersonaje(f => ({ ...f, descripcion: v }))} style={styles.input} multiline />
-              <TextInput placeholder="Habilidad" value={formPersonaje.habilidad} onChangeText={v => setFormPersonaje(f => ({ ...f, habilidad: v }))} style={styles.input} />
-              <TextInput placeholder="Origen" value={formPersonaje.origen} onChangeText={v => setFormPersonaje(f => ({ ...f, origen: v }))} style={styles.input} />
-              
-              <View style={styles.modalButtons}>
-                <Button title="Insertar" onPress={insertarItem} color="#4CAF50" />
-                <View style={{ height: 10 }} />
-                <Button title="Cancelar" onPress={() => setModalVisible(false)} color="#f44336" />
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-      
-      {/* Modal Listar/Modificar */}
-      <Modal visible={editModalVisible} animationType="slide" transparent={true} onRequestClose={() => setEditModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ScrollView>
-              <Text style={styles.modalTitle}>Lista de Personajes</Text>
-              
-              {!itemEdit ? (
-                <View>
-                  {lista.length === 0 ? (
-                    <Text style={styles.emptyText}>No hay datos disponibles</Text>
-                  ) : (
-                    lista.map((i) => (
-                      <TouchableOpacity 
-                        key={i._id} 
-                        style={styles.listItem} 
-                        onPress={() => setItemEdit(i)}
-                      >
-                        <Text style={styles.listItemText}>{i.nombre}</Text>
-                      </TouchableOpacity>
-                    ))
-                  )}
-                  <View style={{ marginTop: 20 }}>
-                    <Button title="Cerrar" onPress={() => setEditModalVisible(false)} color="#f44336" />
-                  </View>
-                </View>
+      {/* Lista de Personajes */}
+      <View style={styles.section}>
+        {personajesData.length === 0 ? (
+          <Text style={styles.emptyText}>No hay personajes disponibles</Text>
+        ) : (
+          personajesData.map((personaje, index) => (
+            <TouchableOpacity
+              key={`${personaje.nombre}-${index}`}
+              style={styles.card}
+              onPress={() => seleccionarPersonaje(personaje)}
+            >
+              {personaje.urlImagen ? (
+                <Image 
+                  source={{ uri: personaje.urlImagen }} 
+                  style={styles.cardImage} 
+                  resizeMode="cover"
+                />
               ) : (
-                <View>
-                  <Text style={styles.subtitle}>Editando: {itemEdit.nombre}</Text>
-                  
-                  <TextInput placeholder="Nombre" value={itemEdit.nombre || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, nombre: v }))} style={styles.input} />
-                  <TextInput placeholder="Edad" value={String(itemEdit.edad || '')} onChangeText={v => setItemEdit((e: any) => ({ ...e, edad: v }))} style={styles.input} keyboardType="numeric" />
-                  <TextInput placeholder="Altura" value={String(itemEdit.altura || '')} onChangeText={v => setItemEdit((e: any) => ({ ...e, altura: v }))} style={styles.input} keyboardType="numeric" />
-                  <TextInput placeholder="Peso" value={String(itemEdit.peso || '')} onChangeText={v => setItemEdit((e: any) => ({ ...e, peso: v }))} style={styles.input} keyboardType="numeric" />
-                  <TextInput placeholder="URL Imagen" value={itemEdit.urlImagen || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, urlImagen: v }))} style={styles.input} />
-                  <TextInput placeholder="Género" value={itemEdit.genero || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, genero: v }))} style={styles.input} />
-                  <TextInput placeholder="Descripción" value={itemEdit.descripcion || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, descripcion: v }))} style={styles.input} multiline />
-                  <TextInput placeholder="Habilidad" value={itemEdit.habilidad || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, habilidad: v }))} style={styles.input} />
-                  <TextInput placeholder="Origen" value={itemEdit.origen || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, origen: v }))} style={styles.input} />
-                  
-                  <View style={styles.modalButtons}>
-                    <Button title="Actualizar" onPress={actualizarItem} color="#4CAF50" />
-                    <View style={{ height: 10 }} />
-                    <Button title="Volver a Lista" onPress={() => setItemEdit(null)} color="#2196F3" />
-                    <View style={{ height: 10 }} />
-                    <Button title="Cerrar" onPress={() => setEditModalVisible(false)} color="#f44336" />
-                  </View>
+                <View style={styles.noImageContainer}>
+                  <Text style={styles.noImageText}>Sin imagen</Text>
                 </View>
               )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>{personaje.nombre}</Text>
+                <Text style={styles.cardSource}>📊 {personaje.fuente}</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+      
+      {/* Separador */}
+      <View style={styles.divider} />
+      
+      {/* Lista de Habilidades */}
+      <Text style={styles.mainTitle}>Habilidades</Text>
+      <Text style={styles.subtitle}>Todas las habilidades disponibles en las bases de datos</Text>
+      
+      <View style={styles.section}>
+        {habilidadesData.length === 0 ? (
+          <Text style={styles.emptyText}>No hay habilidades disponibles</Text>
+        ) : (
+          habilidadesData.map((habilidad, index) => (
+            <View
+              key={`${habilidad.nombre}-${index}`}
+              style={styles.habilidadCard}
+            >
+              <Text style={styles.habilidadNombre}>{habilidad.nombre}</Text>
+              <Text style={styles.habilidadTipo}>Tipo: {habilidad.tipo || 'N/A'}</Text>
+              <Text style={styles.habilidadPersonaje}>Personaje: {habilidad.personaje || 'N/A'}</Text>
+              <Text style={styles.cardSource}>📊 {habilidad.fuente}</Text>
+            </View>
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 };
@@ -326,163 +155,115 @@ const HunterXHunterScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
     padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#f5f5f5',
   },
-  selectorContainer: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  selectorTitle: {
+  loadingText: {
+    marginTop: 16,
     fontSize: 16,
+    color: '#666',
+  },
+  mainTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#333',
     marginBottom: 8,
-    color: '#333',
+    marginTop: 16,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  selectorButton: {
-    flex: 1,
-    padding: 12,
-    marginHorizontal: 4,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  selectorButtonActive: {
-    backgroundColor: '#2196F3',
-  },
-  selectorButtonText: {
-    color: '#666',
-    fontWeight: '600',
-  },
-  selectorButtonTextActive: {
-    color: '#fff',
-  },
-  apiInfo: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 8,
-  },
-  searchContainer: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    backgroundColor: '#fff',
+  subtitle: {
     fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    fontStyle: 'italic',
   },
-  crudButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  section: {
     marginBottom: 16,
   },
-  buttonWrapper: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  itemContainer: {
+  card: {
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    elevation: 2,
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  itemTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#333',
-  },
-  image: {
+  cardImage: {
     width: '100%',
     height: 200,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: '#eee',
   },
-  itemText: {
-    fontSize: 14,
-    marginBottom: 8,
-    color: '#555',
-  },
-  infoText: {
-    fontSize: 13,
-    color: '#2196F3',
-    marginTop: 8,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  bold: {
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  noImageContainer: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#eee',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    width: '90%',
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-    color: '#333',
-  },
-  subtitle: {
+  noImageText: {
+    color: '#999',
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    color: '#555',
   },
-  modalButtons: {
-    marginTop: 16,
-  },
-  listItem: {
+  cardContent: {
     padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
-  listItemText: {
-    fontSize: 16,
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#333',
+    marginBottom: 4,
+  },
+  cardSource: {
+    fontSize: 12,
+    color: '#2196F3',
+    marginTop: 4,
+  },
+  habilidadCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  habilidadNombre: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  habilidadTipo: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  habilidadPersonaje: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  divider: {
+    height: 2,
+    backgroundColor: '#ddd',
+    marginVertical: 24,
   },
   emptyText: {
     textAlign: 'center',
     color: '#999',
+    fontSize: 16,
     marginVertical: 20,
   },
 });
