@@ -3,5 +3,15 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+  "git.allowForcePush": true,
+  "git.alwaysShowStagedChangesResourceGroup": true,
+  "git.autofetch": true,
+  "azureRepos.autoFetch.enabled": true,
+  "files.autoSaveWhenNoErrors": true,
+  "files.autoSaveWorkspaceFilesOnly": true,
+  "git.fetchOnPull": true,
+  "git-graph.repository.fetchAndPrune": true,
+  "git-graph.repository.fetchAndPruneTags": true,
+  "git-graph.dialog.fetchIntoLocalBranch.forceFetch": true
 }

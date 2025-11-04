@@ -5,7 +5,9 @@ import React, { useRef, useState } from 'react';
 import { Alert, Button, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-// API_URL eliminado. Usar rutas relativas para conectar con backend.
+
+// API Backend desplegado en Railway
+const API_URL = 'https://mysql-backend-proyecto.up.railway.app';
 
 const TabIndexScreen: React.FC = () => {
   const [showEditSection, setShowEditSection] = useState<'caballero' | 'batalla'>('caballero');
@@ -67,7 +69,7 @@ const TabIndexScreen: React.FC = () => {
   // useEffect para batallasEdit
   React.useEffect(() => {
     if (caballeroEdit && caballeroEdit.nombre) {
-      fetch(`https://api-caballerosdelzodiaco-1-4.onrender.com/api/batallas/${encodeURIComponent(caballeroEdit.nombre)}`)
+      fetch(`${API_URL}/api/batallas/${encodeURIComponent(caballeroEdit.nombre)}`)
         .then(res => res.ok ? res.json() : [])
         .then(data => setBatallasEdit(data))
         .catch(() => setBatallasEdit([]));
@@ -134,7 +136,7 @@ const TabIndexScreen: React.FC = () => {
         Alert.alert('Aviso', 'Ingresa el nombre del caballero');
         return;
       }
-      const url = `https://api-caballerosdelzodiaco-1-4.onrender.com/api/caballero/${encodeURIComponent(nombre)}`;
+      const url = `${API_URL}/api/caballero/${encodeURIComponent(nombre)}`;
       const res = await fetch(url);
       if (res.ok) {
         const cab = await res.json();
@@ -193,7 +195,7 @@ const TabIndexScreen: React.FC = () => {
               return;
             }
             try {
-              const res = await fetch(`https://api-caballerosdelzodiaco-1-4.onrender.com/api/caballero/${encodeURIComponent(nombre)}`, {
+              const res = await fetch(`${API_URL}/api/caballero/${encodeURIComponent(nombre)}`, {
                 method: 'DELETE',
               });
               if (res.ok) {
@@ -211,7 +213,7 @@ const TabIndexScreen: React.FC = () => {
         <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
           <Button title="Listar/Modificar Caballeros" color="#2980b9" onPress={async () => {
             try {
-              const res = await fetch(`https://api-caballerosdelzodiaco-1-4.onrender.com/api/caballeros`);
+              const res = await fetch(`${API_URL}/api/caballeros`);
               if (res.ok) {
                 const lista = await res.json();
                 setCaballeroEdit(null); // Para mostrar la lista
@@ -338,7 +340,7 @@ const TabIndexScreen: React.FC = () => {
                     participantes: typeof b.participantes === 'string' ? b.participantes.split(',').map(p => p.trim()) : b.participantes
                   }));
                   const body = { ...form, imagen: imagenFinal, batallas: batallasFinal };
-                  const res = await fetch('https://api-caballerosdelzodiaco-1-4.onrender.com/api/caballeros', {
+                  const res = await fetch(`${API_URL}/api/caballeros`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
@@ -407,7 +409,7 @@ const TabIndexScreen: React.FC = () => {
                           </View>
                           <Button title="Actualizar Caballero" color="#4CAF50" onPress={async () => {
                             try {
-                              const res = await fetch(`https://api-caballerosdelzodiaco-1-4.onrender.com/api/caballero/${encodeURIComponent(caballeroEdit.nombre)}`, {
+                              const res = await fetch(`${API_URL}/api/caballero/${encodeURIComponent(caballeroEdit.nombre)}`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -490,7 +492,7 @@ const TabIndexScreen: React.FC = () => {
                               ))}
                               <Button title="Actualizar Batallas" color="#4CAF50" onPress={async () => {
                                 try {
-                                  const res = await fetch(`https://api-caballerosdelzodiaco-1-4.onrender.com/api/batallas/${encodeURIComponent(caballeroEdit.nombre)}`, {
+                                  const res = await fetch(`${API_URL}/api/batallas/${encodeURIComponent(caballeroEdit.nombre)}`, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(batallasEdit)

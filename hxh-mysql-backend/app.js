@@ -35,6 +35,16 @@ const Personaje = require('./models/personaje')(sequelizePersonajes);
 const Habilidad = require('./models/habilidad/habilidad')(sequelizeHabilidades);
 app.use(cors());
 app.use(express.json());
+
+// Healthcheck endpoint para Railway
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'hxh-mysql-backend'
+  });
+});
+
 app.use('/api/personajes', personajeRoutes);
 app.use('/api/habilidades', habilidadRoutes);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
