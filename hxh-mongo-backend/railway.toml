@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd hxh-mysql-backend && npm install"
+buildCommand = "npm install"
 
 [deploy]
-startCommand = "cd hxh-mysql-backend && node app.js"
+startCommand = "node app.js"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 healthcheckPath = "/health"
