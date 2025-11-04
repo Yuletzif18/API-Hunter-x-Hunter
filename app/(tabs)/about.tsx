@@ -1,8 +1,8 @@
 
 
-import { useCaballero } from '@/components/CaballeroContext';
+import { usePersonaje } from '@/components/PersonajeContext';
 import React, { useEffect, useState } from 'react';
-import { Button, Image, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Button, Image, Modal, ScrollView, Text, View } from 'react-native';
 
 // APIs disponibles para habilidades
 const APIS_HABILIDADES = {
@@ -13,7 +13,7 @@ const APIS_HABILIDADES = {
 export default function AboutScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [habilidadesModalVisible, setHabilidadesModalVisible] = useState(false);
-  const { caballero: personaje } = useCaballero();
+  const { personaje } = usePersonaje();
   const [habilidades, setHabilidades] = useState<any[]>([]);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useCaballero } from '@/components/CaballeroContext';
+import { usePersonaje } from '@/components/PersonajeContext';
 import { useImagen } from '@/components/ImagenContext';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useRef, useState } from 'react';
@@ -79,23 +79,23 @@ const TabIndexScreen: React.FC = () => {
       { translateY: translateY.value }
     ] as any // Forzar el tipo para evitar error de tipo
   }));
-  // Estado para edición de caballero y batallas
-  const [caballeroEdit, setCaballeroEdit] = useState<any>(null);
+  // Estado para edición de personaje y batallas
+  const [personajeEdit, setPersonajeEdit] = useState<any>(null);
   const [batallasEdit, setBatallasEdit] = useState<any[]>([]);
 
   // useEffect para batallasEdit
   React.useEffect(() => {
-    if (caballeroEdit && caballeroEdit.nombre) {
-      fetch(`${API_URL}/api/batallas/${encodeURIComponent(caballeroEdit.nombre)}`)
+    if (personajeEdit && personajeEdit.nombre) {
+      fetch(`${API_URL}/api/batallas/${encodeURIComponent(personajeEdit.nombre)}`)
         .then(res => res.ok ? res.json() : [])
         .then(data => setBatallasEdit(data))
         .catch(() => setBatallasEdit([]));
     } else {
       setBatallasEdit([]);
     }
-  }, [caballeroEdit]);
+  }, [personajeEdit]);
   const [nombre, setNombre] = useState('');
-  const { caballero, setCaballero } = useCaballero();
+  const { personaje, setPersonaje } = usePersonaje();
   const { imagen, setImagen } = useImagen();
   const [modalVisible, setModalVisible] = useState(false);
   const [form, setForm] = useState({
@@ -163,7 +163,7 @@ const TabIndexScreen: React.FC = () => {
         if (found) {
           // Agregar la fuente de API al personaje
           const personajeConFuente = { ...found, fuente: API_SOURCE };
-          setCaballero(personajeConFuente);
+          setPersonaje(personajeConFuente);
           
           let imgUrl = null;
           if (found.urlImagen) {
@@ -177,7 +177,7 @@ const TabIndexScreen: React.FC = () => {
             Alert.alert('Personaje encontrado', `Nombre: ${found.nombre}\n\nVe a About para ver detalles completos`);
           }
         } else {
-          setCaballero(null);
+          setPersonaje(null);
           setImagen(null);
           if (Platform.OS === 'web') {
             window.alert('No existe en la base de datos');
@@ -186,12 +186,12 @@ const TabIndexScreen: React.FC = () => {
           }
         }
       } else {
-        setCaballero(null);
+        setPersonaje(null);
         setImagen(null);
         Alert.alert('Error', 'No se pudo consultar');
       }
     } catch {
-      setCaballero(null);
+      setPersonaje(null);
       if (Platform.OS === 'web') {
         window.alert('Error de conexión');
       } else {
@@ -201,7 +201,7 @@ const TabIndexScreen: React.FC = () => {
   };
 
   const [modificarModalVisible, setModificarModalVisible] = useState(false);
-  const [caballerosLista, setCaballerosLista] = useState<any[]>([]);
+  const [personajesLista, setPersonajesLista] = useState<any[]>([]);
 
   return (
     <ScrollView>
@@ -282,7 +282,7 @@ const TabIndexScreen: React.FC = () => {
                   
                   if (deleteRes.ok) {
                     Alert.alert('Eliminado', `${dataType === 'personajes' ? 'Personaje' : 'Habilidad'} eliminado correctamente`);
-                    setCaballero(null);
+                    setPersonaje(null);
                     setImagen(null);
                     setNombre('');
                   } else {
@@ -303,8 +303,8 @@ const TabIndexScreen: React.FC = () => {
               const res = await fetch(API_URL);
               if (res.ok) {
                 const lista = await res.json();
-                setCaballeroEdit(null);
-                setCaballerosLista(lista);
+                setPersonajeEdit(null);
+                setPersonajesLista(lista);
                 setModificarModalVisible(true);
               } else {
                 Alert.alert('Error', 'No se pudo obtener la lista');
@@ -456,12 +456,12 @@ const TabIndexScreen: React.FC = () => {
           />
           <View style={{ backgroundColor: 'white', padding: 12, borderRadius: 14, width: '96%', maxHeight: '92%' }}>
             <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-              <Text style={{ fontSize: 20, marginBottom: 10, textAlign: 'center' }}>Modificar Caballero</Text>
-              {!caballeroEdit ? (
+              <Text style={{ fontSize: 20, marginBottom: 10, textAlign: 'center' }}>Modificar Personaje</Text>
+              {!personajeEdit ? (
                 <View>
-                  <Text style={{ marginBottom: 10 }}>Selecciona un caballero para editar:</Text>
-                  {caballerosLista.map((c) => (
-                    <TouchableOpacity key={c._id} style={{ padding: 8, borderBottomWidth: 1, borderColor: '#eee' }} onPress={() => setCaballeroEdit(c)}>
+                  <Text style={{ marginBottom: 10 }}>Selecciona un personaje para editar:</Text>
+                  {personajesLista.map((c) => (
+                    <TouchableOpacity key={c._id} style={{ padding: 8, borderBottomWidth: 1, borderColor: '#eee' }} onPress={() => setPersonajeEdit(c)}>
                       <Text>{c.nombre}</Text>
                     </TouchableOpacity>
                   ))}
@@ -470,7 +470,7 @@ const TabIndexScreen: React.FC = () => {
               ) : (
                 <View>
                   <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 12 }}>
-                    <Button title="Datos del Caballero" onPress={() => setShowEditSection('caballero')} color="#2196F3" />
+                    <Button title="Datos del Personaje" onPress={() => setShowEditSection('caballero')} color="#2196F3" />
                     <View style={{ width: 10 }} />
                     <Button title="Batallas" onPress={() => setShowEditSection('batalla')} color="#6C3483" />
                   </View>
@@ -480,35 +480,35 @@ const TabIndexScreen: React.FC = () => {
                         <View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                             <Text style={styles.label}>Nombre:</Text>
-                            <TextInput value={caballeroEdit.nombre} onChangeText={v => setCaballeroEdit((e: any) => ({ ...e, nombre: v }))} style={styles.input} />
+                            <TextInput value={personajeEdit.nombre} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, nombre: v }))} style={styles.input} />
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                             <Text style={styles.label}>Signo:</Text>
-                            <TextInput value={caballeroEdit.signo} onChangeText={v => setCaballeroEdit((e: any) => ({ ...e, signo: v }))} style={styles.input} />
+                            <TextInput value={personajeEdit.signo} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, signo: v }))} style={styles.input} />
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                             <Text style={styles.label}>Rango:</Text>
-                            <TextInput value={caballeroEdit.rango} onChangeText={v => setCaballeroEdit((e: any) => ({ ...e, rango: v }))} style={styles.input} />
+                            <TextInput value={personajeEdit.rango} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, rango: v }))} style={styles.input} />
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                             <Text style={styles.label}>Constelación:</Text>
-                            <TextInput value={caballeroEdit.constelacion} onChangeText={v => setCaballeroEdit((e: any) => ({ ...e, constelacion: v }))} style={styles.input} />
+                            <TextInput value={personajeEdit.constelacion} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, constelacion: v }))} style={styles.input} />
                           </View>
-                          <Button title="Actualizar Caballero" color="#4CAF50" onPress={async () => {
+                          <Button title="Actualizar Personaje" color="#4CAF50" onPress={async () => {
                             try {
-                              const res = await fetch(`${API_URL}/api/caballero/${encodeURIComponent(caballeroEdit.nombre)}`, {
+                              const res = await fetch(`${API_URL}/api/caballero/${encodeURIComponent(personajeEdit.nombre)}`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                  signo: caballeroEdit.signo,
-                                  rango: caballeroEdit.rango,
-                                  constelacion: caballeroEdit.constelacion
+                                  signo: personajeEdit.signo,
+                                  rango: personajeEdit.rango,
+                                  constelacion: personajeEdit.constelacion
                                 })
                               });
                               if (res.ok) {
-                                Alert.alert('Actualizado', 'Caballero actualizado correctamente');
+                                Alert.alert('Actualizado', 'Personaje actualizado correctamente');
                               } else {
-                                Alert.alert('Error', 'No se pudo actualizar el caballero');
+                                Alert.alert('Error', 'No se pudo actualizar el personaje');
                               }
                             } catch {
                               Alert.alert('Error', 'No se pudo conectar al servidor.');
@@ -519,7 +519,7 @@ const TabIndexScreen: React.FC = () => {
                       {showEditSection === 'batalla' && (
                         <View>
                           {batallasEdit.length === 0 ? (
-                            <Text style={{ color: '#888', marginBottom: 8 }}>No hay batallas registradas para este caballero.</Text>
+                            <Text style={{ color: '#888', marginBottom: 8 }}>No hay batallas registradas para este personaje.</Text>
                           ) : (
                             <>
                               {batallasEdit.map((batalla, idx) => (
@@ -579,7 +579,7 @@ const TabIndexScreen: React.FC = () => {
                               ))}
                               <Button title="Actualizar Batallas" color="#4CAF50" onPress={async () => {
                                 try {
-                                  const res = await fetch(`${API_URL}/api/batallas/${encodeURIComponent(caballeroEdit.nombre)}`, {
+                                  const res = await fetch(`${API_URL}/api/batallas/${encodeURIComponent(personajeEdit.nombre)}`, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(batallasEdit)
@@ -634,12 +634,12 @@ const TabIndexScreen: React.FC = () => {
             <Text style={{ color: '#aaa' }}>Sin imagen</Text>
           </View>
         )}
-        {caballero && (
+        {personaje && (
           <View style={{ width: '100%', maxWidth: 400, marginTop: 10, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 18, marginBottom: 4, textAlign: 'center' }}>Nombre: {caballero.nombre}</Text>
+            <Text style={{ fontSize: 18, marginBottom: 4, textAlign: 'center' }}>Nombre: {personaje.nombre}</Text>
             {dataType === 'personajes' && (
               <>
-                <Text style={{ fontSize: 14, color: '#666', marginTop: 4 }}>📊 Fuente: {caballero.fuente || API_SOURCE}</Text>
+                <Text style={{ fontSize: 14, color: '#666', marginTop: 4 }}>📊 Fuente: {personaje.fuente || API_SOURCE}</Text>
                 <Text style={{ fontSize: 12, color: '#999', marginTop: 8, textAlign: 'center' }}>Ve a About para ver todos los detalles y habilidades</Text>
               </>
             )}
