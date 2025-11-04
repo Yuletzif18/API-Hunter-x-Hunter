@@ -15,12 +15,15 @@ export default function AboutScreen() {
   const [habilidadesModalVisible, setHabilidadesModalVisible] = useState(false);
   const { caballero: personaje } = useCaballero();
   const [habilidades, setHabilidades] = useState<any[]>([]);
-  const [apiType, setApiType] = useState<'MONGODB' | 'MYSQL'>('MONGODB');
 
   useEffect(() => {
-    // Consulta las habilidades relacionadas con el personaje
-    if (personaje && personaje.nombre) {
-      const API_URL = APIS_HABILIDADES[apiType];
+    // Consulta las habilidades relacionadas con el personaje usando la misma fuente
+    if (personaje && personaje.nombre && personaje.fuente) {
+      // Determinar la URL según la fuente del personaje
+      const API_URL = personaje.fuente === 'MongoDB' 
+        ? APIS_HABILIDADES.MONGODB 
+        : APIS_HABILIDADES.MYSQL;
+      
       fetch(API_URL)
         .then(res => res.ok ? res.json() : [])
         .then(data => {
@@ -32,7 +35,7 @@ export default function AboutScreen() {
         })
         .catch(() => setHabilidades([]));
     }
-  }, [personaje, apiType]);
+  }, [personaje]);
 
   if (!personaje) return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -43,32 +46,6 @@ export default function AboutScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      {/* Selector de API para habilidades */}
-      <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 10 }}>
-        <TouchableOpacity 
-          style={{ 
-            padding: 10, 
-            marginHorizontal: 4, 
-            backgroundColor: apiType === 'MONGODB' ? '#2196F3' : '#e0e0e0', 
-            borderRadius: 8 
-          }}
-          onPress={() => setApiType('MONGODB')}
-        >
-          <Text style={{ color: apiType === 'MONGODB' ? '#fff' : '#666', fontWeight: '600' }}>MongoDB</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={{ 
-            padding: 10, 
-            marginHorizontal: 4, 
-            backgroundColor: apiType === 'MYSQL' ? '#2196F3' : '#e0e0e0', 
-            borderRadius: 8 
-          }}
-          onPress={() => setApiType('MYSQL')}
-        >
-          <Text style={{ color: apiType === 'MYSQL' ? '#fff' : '#666', fontWeight: '600' }}>MySQL</Text>
-        </TouchableOpacity>
-      </View>
-
       {(personaje.urlImagen && (personaje.urlImagen.startsWith('http') || personaje.urlImagen.startsWith('/')))
         ? (
           <View style={{
@@ -148,11 +125,11 @@ export default function AboutScreen() {
           <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, maxHeight: '80%', width: '90%' }}>
             <ScrollView>
               <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 10 }}>Habilidades de {personaje.nombre}</Text>
-              <Text style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>Base de datos: {apiType}</Text>
+              <Text style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>Base de datos: {personaje.fuente || 'N/A'}</Text>
               
               {habilidades.length === 0 ? (
                 <Text style={{ color: '#999', textAlign: 'center', marginVertical: 20 }}>
-                  No hay habilidades registradas para este personaje en {apiType}
+                  No hay habilidades registradas para este personaje
                 </Text>
               ) : (
                 habilidades.map((h, i) => (

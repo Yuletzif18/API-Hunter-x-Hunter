@@ -6,24 +6,27 @@ import { Alert, Button, Image, Modal, Platform, ScrollView, StyleSheet, Text, Te
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-// APIs disponibles
-const APIS = {
-  MONGODB: {
+// APIs disponibles - Todas las fuentes
+const APIS = [
+  {
+    nombre: 'MongoDB',
     personajes: 'https://api-hunter-x-hunter-mongodb.up.railway.app/api/personajes',
     habilidades: 'https://api-hunter-x-hunter-mongodb.up.railway.app/api/habilidades',
   },
-  MYSQL: {
-    personajes: 'https://api-hunter-x-hunter-production.up.railway.app/api/personajes',
+  {
+    nombre: 'MySQL',
+    personajes: 'https://api-hunter-x-hunter-mysql.up.railway.app/api/personajes',
     habilidades: 'https://api-hunter-x-hunter-mysql.up.railway.app/api/habilidades',
   }
-};
+];
 
 const TabIndexScreen: React.FC = () => {
   // Selector de API: MongoDB o MySQL
-  const [apiType, setApiType] = useState<'MONGODB' | 'MYSQL'>('MONGODB');
+  const [apiType, setApiType] = useState<number>(0); // índice del array APIS
   const [dataType, setDataType] = useState<'personajes' | 'habilidades'>('personajes');
   
   const API_URL = APIS[apiType][dataType];
+  const API_SOURCE = APIS[apiType].nombre; // Guardamos la fuente para el contexto
   const [showEditSection, setShowEditSection] = useState<'caballero' | 'batalla'>('caballero');
 
   // --- lógica de gestos ---
@@ -144,35 +147,48 @@ const TabIndexScreen: React.FC = () => {
     }
   };
 
-  const consultarCaballero = async () => {
+  const consultarPersonaje = async () => {
     try {
       if (!nombre.trim()) {
-        Alert.alert('Aviso', 'Ingresa el nombre del caballero');
+        Alert.alert('Aviso', 'Ingresa el nombre del personaje');
         return;
       }
-      const url = `${API_URL}/api/caballero/${encodeURIComponent(nombre)}`;
-      const res = await fetch(url);
+      
+      // Buscar en la lista de personajes
+      const res = await fetch(API_URL);
       if (res.ok) {
-        const cab = await res.json();
-        setCaballero(cab);
-        let imgUrl = null;
-        if (cab.imagen) {
-          imgUrl = cab.imagen.startsWith('http') ? cab.imagen : cab.imagen;
-        }
-        setImagen(imgUrl);
-        if (Platform.OS === 'web') {
-          window.alert(`Caballero encontrado: ${cab.nombre}`);
+        const items = await res.json();
+        const found = items.find((i: any) => i.nombre.toLowerCase() === nombre.toLowerCase());
+        
+        if (found) {
+          // Agregar la fuente de API al personaje
+          const personajeConFuente = { ...found, fuente: API_SOURCE };
+          setCaballero(personajeConFuente);
+          
+          let imgUrl = null;
+          if (found.urlImagen) {
+            imgUrl = found.urlImagen.startsWith('http') ? found.urlImagen : found.urlImagen;
+          }
+          setImagen(imgUrl);
+          
+          if (Platform.OS === 'web') {
+            window.alert(`Personaje encontrado: ${found.nombre}`);
+          } else {
+            Alert.alert('Personaje encontrado', `Nombre: ${found.nombre}\n\nVe a About para ver detalles completos`);
+          }
         } else {
-          Alert.alert('Caballero encontrado', `Nombre: ${cab.nombre}`);
+          setCaballero(null);
+          setImagen(null);
+          if (Platform.OS === 'web') {
+            window.alert('No existe en la base de datos');
+          } else {
+            Alert.alert('No encontrado', 'No existe en la base de datos');
+          }
         }
       } else {
         setCaballero(null);
         setImagen(null);
-        if (Platform.OS === 'web') {
-          window.alert('No existe en la base de datos');
-        } else {
-          Alert.alert('No existe en la base de datos');
-        }
+        Alert.alert('Error', 'No se pudo consultar');
       }
     } catch {
       setCaballero(null);
@@ -188,56 +204,113 @@ const TabIndexScreen: React.FC = () => {
   const [caballerosLista, setCaballerosLista] = useState<any[]>([]);
 
   return (
-    <View>
+    <ScrollView>
+      {/* Selector de API */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 10, marginTop: 20 }}>
+        {APIS.map((api, index) => (
+          <TouchableOpacity
+            key={api.nombre}
+            style={{
+              padding: 10,
+              marginHorizontal: 4,
+              backgroundColor: apiType === index ? '#2196F3' : '#e0e0e0',
+              borderRadius: 8
+            }}
+            onPress={() => setApiType(index)}
+          >
+            <Text style={{ color: apiType === index ? '#fff' : '#666', fontWeight: '600' }}>{api.nombre}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      
+      {/* Selector de Entidad */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 10 }}>
+        <TouchableOpacity
+          style={{
+            padding: 10,
+            marginHorizontal: 4,
+            backgroundColor: dataType === 'personajes' ? '#4CAF50' : '#e0e0e0',
+            borderRadius: 8
+          }}
+          onPress={() => setDataType('personajes')}
+        >
+          <Text style={{ color: dataType === 'personajes' ? '#fff' : '#666', fontWeight: '600' }}>Personajes</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{
+            padding: 10,
+            marginHorizontal: 4,
+            backgroundColor: dataType === 'habilidades' ? '#FF9800' : '#e0e0e0',
+            borderRadius: 8
+          }}
+          onPress={() => setDataType('habilidades')}
+        >
+          <Text style={{ color: dataType === 'habilidades' ? '#fff' : '#666', fontWeight: '600' }}>Habilidades</Text>
+        </TouchableOpacity>
+      </View>
+      
       <TextInput
-        placeholder="Nombre del caballero"
+        placeholder={`Nombre del ${dataType === 'personajes' ? 'personaje' : 'habilidad'}`}
         value={nombre}
         onChangeText={setNombre}
-        style={{ borderWidth: 1, margin: 10, padding: 5 }}
+        style={{ borderWidth: 1, margin: 10, padding: 8, borderRadius: 8 }}
       />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginVertical: 10, gap: 8, paddingHorizontal: 8 }}>
         <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
-          <Button title="Consultar" onPress={consultarCaballero} />
+          <Button title="Consultar" onPress={consultarPersonaje} />
         </View>
         <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
-          <Button title="Insertar un Caballero" onPress={() => setModalVisible(true)} color="#4CAF50" />
+          <Button title={`Insertar ${dataType === 'personajes' ? 'Personaje' : 'Habilidad'}`} onPress={() => setModalVisible(true)} color="#4CAF50" />
         </View>
         <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
-          <Button title="Eliminar Caballero" color="#e74c3c" onPress={async () => {
+          <Button title={`Eliminar ${dataType === 'personajes' ? 'Personaje' : 'Habilidad'}`} color="#e74c3c" onPress={async () => {
             if (!nombre.trim()) {
-              Alert.alert('Aviso', 'Ingresa el nombre del caballero a eliminar');
+              Alert.alert('Aviso', `Ingresa el nombre del ${dataType === 'personajes' ? 'personaje' : 'habilidad'} a eliminar`);
               return;
             }
             try {
-              const res = await fetch(`${API_URL}/api/caballero/${encodeURIComponent(nombre)}`, {
-                method: 'DELETE',
-              });
+              // Buscar el item primero
+              const res = await fetch(API_URL);
               if (res.ok) {
-                Alert.alert('Eliminado', 'Caballero eliminado correctamente');
-                setCaballero(null);
-                setImagen(null);
-              } else {
-                Alert.alert('Error', 'No se pudo eliminar el caballero');
+                const items = await res.json();
+                const found = items.find((i: any) => i.nombre.toLowerCase() === nombre.toLowerCase());
+                
+                if (found) {
+                  const deleteRes = await fetch(`${API_URL}/${found._id || found.id}`, {
+                    method: 'DELETE',
+                  });
+                  
+                  if (deleteRes.ok) {
+                    Alert.alert('Eliminado', `${dataType === 'personajes' ? 'Personaje' : 'Habilidad'} eliminado correctamente`);
+                    setCaballero(null);
+                    setImagen(null);
+                    setNombre('');
+                  } else {
+                    Alert.alert('Error', 'No se pudo eliminar');
+                  }
+                } else {
+                  Alert.alert('No encontrado', 'No existe en la base de datos');
+                }
               }
             } catch {
-              Alert.alert('Error', 'No se pudo conectar al servidor. Verifica la IP y el backend.');
+              Alert.alert('Error', 'No se pudo conectar al servidor');
             }
           }} />
         </View>
         <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
-          <Button title="Listar/Modificar Caballeros" color="#2980b9" onPress={async () => {
+          <Button title={`Listar/Modificar ${dataType === 'personajes' ? 'Personajes' : 'Habilidades'}`} color="#2980b9" onPress={async () => {
             try {
-              const res = await fetch(`${API_URL}/api/caballeros`);
+              const res = await fetch(API_URL);
               if (res.ok) {
                 const lista = await res.json();
-                setCaballeroEdit(null); // Para mostrar la lista
-                setCaballerosLista(lista); // Debes declarar const [caballerosLista, setCaballerosLista] = useState<any[]>([]);
+                setCaballeroEdit(null);
+                setCaballerosLista(lista);
                 setModificarModalVisible(true);
               } else {
                 Alert.alert('Error', 'No se pudo obtener la lista');
               }
             } catch {
-              Alert.alert('Error', 'No se pudo conectar al servidor. Verifica la IP y el backend.');
+              Alert.alert('Error', 'No se pudo conectar al servidor');
             }
           }} />
         </View>
@@ -564,12 +637,16 @@ const TabIndexScreen: React.FC = () => {
         {caballero && (
           <View style={{ width: '100%', maxWidth: 400, marginTop: 10, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontSize: 18, marginBottom: 4, textAlign: 'center' }}>Nombre: {caballero.nombre}</Text>
-            <Text style={{ fontSize: 16, marginBottom: 2, textAlign: 'center' }}>Constelación: {caballero.constelacion}</Text>
-            <Text style={{ fontSize: 16, marginBottom: 2, textAlign: 'center' }}>Género: {caballero.genero}</Text>
+            {dataType === 'personajes' && (
+              <>
+                <Text style={{ fontSize: 14, color: '#666', marginTop: 4 }}>📊 Fuente: {caballero.fuente || API_SOURCE}</Text>
+                <Text style={{ fontSize: 12, color: '#999', marginTop: 8, textAlign: 'center' }}>Ve a About para ver todos los detalles y habilidades</Text>
+              </>
+            )}
           </View>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
