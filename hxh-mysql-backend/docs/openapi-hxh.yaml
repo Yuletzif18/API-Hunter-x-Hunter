@@ -1,49 +1,83 @@
 openapi: 3.1.0
 info:
-  title: APIs Hunter x Hunter (microservicios)
+  title: API Hunter x Hunter - MySQL
   version: "1.0.0"
-  description: "Documentación centralizada de microservicios: personajes y habilidades"
+  description: |
+    API REST para gestión de personajes y habilidades de Hunter x Hunter usando MySQL.
+    
+    **Características:**
+    - CRUD completo de Personajes
+    - CRUD completo de Habilidades
+    - Relación entre Personajes y Habilidades
+    - Base de datos MySQL en Railway
+    
+  contact:
+    name: API Support
+    url: https://github.com/Yuletzif18/API-Hunter-x-Hunter
 servers:
-  - url: http://localhost:3002
-    description: Microservicio Personajes (puerto 3002)
-  - url: http://localhost:3003
-    description: Microservicio Habilidades (puerto 3003)
+  - url: https://api-hunter-x-hunter-mysql.up.railway.app
+    description: Servidor de Producción (Railway)
+  - url: http://localhost:3000
+    description: Servidor de Desarrollo Local
 tags:
-  - name: personajes
-    description: Operaciones relacionadas con personajes
-    externalDocs:
-      description: Consultar API Personajes
-      url: http://localhost:3002/api/personajes
-  - name: habilidades
-    description: Operaciones relacionadas con habilidades
-    externalDocs:
-      description: Consultar API Habilidades
-      url: http://localhost:3003/api/habilidades
+  - name: Health
+    description: Health check del servicio
+  - name: Personajes
+    description: Operaciones CRUD para personajes de Hunter x Hunter
+  - name: Habilidades
+    description: Operaciones CRUD para habilidades de los personajes
 paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Verifica el estado del servicio
+      description: Endpoint de health check para Railway
+      responses:
+        '200':
+          description: Servicio operativo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+                  timestamp:
+                    type: string
+                    format: date-time
+                  database:
+                    type: string
+                    example: connected
   /api/personajes:
     get:
       tags:
-        - personajes
-      summary: Obtiene todos los personajes
+        - Personajes
+      summary: Obtener todos los personajes
+      description: Retorna la lista completa de personajes registrados en la base de datos
       responses:
         '200':
-          description: Lista de personajes
+          description: Lista de personajes obtenida exitosamente
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Personaje'
+        '500':
+          description: Error interno del servidor
     post:
       tags:
-        - personajes
-      summary: Crea un nuevo personaje
+        - Personajes
+      summary: Crear un nuevo personaje
+      description: Crea un nuevo personaje en la base de datos
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Personaje'
+              $ref: '#/components/schemas/PersonajeInput'
       responses:
         '201':
           description: Personaje creado exitosamente
@@ -52,18 +86,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/Personaje'
         '400':
-          description: Datos inválidos
-  /api/personajes/{nombre}:
+          description: Datos inválidos o incompletos
+        '500':
+          description: Error interno del servidor
+  /api/personajes/{id}:
     get:
       tags:
-        - personajes
-      summary: Obtiene un personaje por nombre
+        - Personajes
+      summary: Obtener un personaje por ID
+      description: Retorna los detalles de un personaje específico
       parameters:
         - in: path
-          name: nombre
+          name: id
           required: true
           schema:
-            type: string
+            type: integer
+          description: ID único del personaje
       responses:
         '200':
           description: Personaje encontrado
@@ -73,22 +111,26 @@ paths:
                 $ref: '#/components/schemas/Personaje'
         '404':
           description: Personaje no encontrado
+        '500':
+          description: Error interno del servidor
     put:
       tags:
-        - personajes
-      summary: Actualiza un personaje por nombre
+        - Personajes
+      summary: Actualizar un personaje por ID
+      description: Actualiza los datos de un personaje existente
       parameters:
         - in: path
-          name: nombre
+          name: id
           required: true
           schema:
-            type: string
+            type: integer
+          description: ID único del personaje
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Personaje'
+              $ref: '#/components/schemas/PersonajeInput'
       responses:
         '200':
           description: Personaje actualizado exitosamente
@@ -100,45 +142,63 @@ paths:
           description: Datos inválidos
         '404':
           description: Personaje no encontrado
+        '500':
+          description: Error interno del servidor
     delete:
       tags:
-        - personajes
-      summary: Elimina un personaje por nombre
+        - Personajes
+      summary: Eliminar un personaje por ID
+      description: Elimina un personaje de la base de datos (también elimina sus habilidades asociadas)
       parameters:
         - in: path
-          name: nombre
+          name: id
           required: true
           schema:
-            type: string
+            type: integer
+          description: ID único del personaje
       responses:
         '200':
           description: Personaje eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Personaje eliminado correctamente
         '404':
           description: Personaje no encontrado
+        '500':
+          description: Error interno del servidor
   /api/habilidades:
     get:
       tags:
-        - habilidades
-      summary: Obtiene todas las habilidades
+        - Habilidades
+      summary: Obtener todas las habilidades
+      description: Retorna la lista completa de habilidades registradas
       responses:
         '200':
-          description: Lista de habilidades
+          description: Lista de habilidades obtenida exitosamente
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Habilidad'
+        '500':
+          description: Error interno del servidor
     post:
       tags:
-        - habilidades
-      summary: Crea una nueva habilidad
+        - Habilidades
+      summary: Crear una nueva habilidad
+      description: Crea una nueva habilidad asociada a un personaje
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Habilidad'
+              $ref: '#/components/schemas/HabilidadInput'
       responses:
         '201':
           description: Habilidad creada exitosamente
@@ -147,18 +207,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/Habilidad'
         '400':
-          description: Datos inválidos
-  /api/habilidades/{nombre}:
+          description: Datos inválidos o incompletos
+        '500':
+          description: Error interno del servidor
+  /api/habilidades/{id}:
     get:
       tags:
-        - habilidades
-      summary: Obtiene una habilidad por nombre de personaje
+        - Habilidades
+      summary: Obtener una habilidad por ID
+      description: Retorna los detalles de una habilidad específica
       parameters:
         - in: path
-          name: nombre
+          name: id
           required: true
           schema:
-            type: string
+            type: integer
+          description: ID único de la habilidad
       responses:
         '200':
           description: Habilidad encontrada
@@ -168,22 +232,26 @@ paths:
                 $ref: '#/components/schemas/Habilidad'
         '404':
           description: Habilidad no encontrada
+        '500':
+          description: Error interno del servidor
     put:
       tags:
-        - habilidades
-      summary: Actualiza una habilidad por nombre de personaje
+        - Habilidades
+      summary: Actualizar una habilidad por ID
+      description: Actualiza los datos de una habilidad existente
       parameters:
         - in: path
-          name: nombre
+          name: id
           required: true
           schema:
-            type: string
+            type: integer
+          description: ID único de la habilidad
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Habilidad'
+              $ref: '#/components/schemas/HabilidadInput'
       responses:
         '200':
           description: Habilidad actualizada exitosamente
@@ -195,89 +263,183 @@ paths:
           description: Datos inválidos
         '404':
           description: Habilidad no encontrada
+        '500':
+          description: Error interno del servidor
     delete:
       tags:
-        - habilidades
-      summary: Elimina una habilidad por nombre de personaje
+        - Habilidades
+      summary: Eliminar una habilidad por ID
+      description: Elimina una habilidad de la base de datos
       parameters:
         - in: path
-          name: nombre
+          name: id
           required: true
           schema:
-            type: string
+            type: integer
+          description: ID único de la habilidad
       responses:
         '200':
           description: Habilidad eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Habilidad eliminada correctamente
         '404':
           description: Habilidad no encontrada
+        '500':
+          description: Error interno del servidor
 components:
   schemas:
     Personaje:
       type: object
-      required:
-        - nombre
-        - edad
-        - altura
-        - peso
-        - urlImagen
       properties:
+        id:
+          type: integer
+          description: ID único del personaje (auto-generado)
+          example: 1
         nombre:
           type: string
-          description: Nombre del personaje
+          description: Nombre completo del personaje
           example: Gon Freecss
         edad:
           type: integer
-          description: Edad del personaje
+          description: Edad del personaje en años
           example: 12
+          nullable: true
         altura:
           type: integer
-          description: Altura en cm
+          description: Altura del personaje en centímetros
           example: 154
+          nullable: true
         peso:
           type: integer
-          description: Peso en kg
+          description: Peso del personaje en kilogramos
           example: 49
-        urlImagen:
-          type: string
-          description: URL de la imagen
-          example: https://ejemplo.com/gon.jpg
+          nullable: true
         genero:
           type: string
-          description: Género
+          description: Género del personaje
           example: Masculino
-        descripcion:
-          type: string
-          description: Descripción
-          example: Protagonista de Hunter x Hunter.
-        habilidad:
-          type: string
-          description: Habilidad principal
-          example: Jajanken
+          nullable: true
         origen:
           type: string
-          description: Lugar de origen
+          description: Lugar de origen del personaje
           example: Isla Ballena
-    Habilidad:
+          nullable: true
+        habilidad:
+          type: string
+          description: Habilidad principal o característica distintiva
+          example: Jajanken (piedra, papel, tijera)
+          nullable: true
+        descripcion:
+          type: string
+          description: Descripción detallada del personaje
+          example: Protagonista principal de Hunter x Hunter, busca a su padre Ging.
+          nullable: true
+        urlImagen:
+          type: string
+          format: uri
+          description: URL de la imagen del personaje
+          example: https://example.com/images/gon.jpg
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha de creación del registro
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha de última actualización
+    PersonajeInput:
       type: object
       required:
         - nombre
-        - tipo
-        - descripcion
-        - personaje
       properties:
+        nombre:
+          type: string
+          description: Nombre completo del personaje
+          example: Killua Zoldyck
+        edad:
+          type: integer
+          example: 12
+        altura:
+          type: integer
+          example: 158
+        peso:
+          type: integer
+          example: 45
+        genero:
+          type: string
+          example: Masculino
+        origen:
+          type: string
+          example: Montaña Kukuroo
+        habilidad:
+          type: string
+          example: Transmutación de electricidad
+        descripcion:
+          type: string
+          example: Mejor amigo de Gon, proveniente de una familia de asesinos.
+        urlImagen:
+          type: string
+          format: uri
+          example: https://example.com/images/killua.jpg
+    Habilidad:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID único de la habilidad (auto-generado)
+          example: 1
         nombre:
           type: string
           description: Nombre de la habilidad
           example: Jajanken
         tipo:
           type: string
-          description: Tipo de habilidad
-          example: Nen
+          description: Tipo o categoría de la habilidad
+          example: Nen - Potenciador
+          nullable: true
         descripcion:
           type: string
-          description: Descripción de la habilidad
-          example: Técnica especial de Gon.
+          description: Descripción detallada de la habilidad
+          example: Técnica de Nen que imita el juego piedra, papel o tijera con diferentes ataques.
+          nullable: true
         personaje:
           type: string
-          description: Nombre del personaje asociado
+          description: Nombre del personaje asociado a esta habilidad
           example: Gon Freecss
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha de creación del registro
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha de última actualización
+    HabilidadInput:
+      type: object
+      required:
+        - nombre
+        - personaje
+      properties:
+        nombre:
+          type: string
+          description: Nombre de la habilidad
+          example: Godspeed
+        tipo:
+          type: string
+          description: Tipo o categoría de la habilidad
+          example: Nen - Transmutación
+        descripcion:
+          type: string
+          description: Descripción detallada
+          example: Killua canaliza electricidad para aumentar su velocidad.
+        personaje:
+          type: string
+          description: Nombre del personaje dueño de la habilidad
+          example: Killua Zoldyck

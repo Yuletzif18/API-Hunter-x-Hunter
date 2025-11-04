@@ -7,7 +7,7 @@ const habilidadRoutes = require('./routes/habilidad/habilidadRoutes');
 
 
 const cors = require('cors');
-const { swaggerSpec, swaggerUi } = require('./swagger');
+const swaggerSetup = require('./swagger');
 
 // Servidor único para personajes y habilidades
 const app = express();
@@ -53,7 +53,10 @@ app.get('/health', (req, res) => {
 
 app.use('/api/personajes', personajeRoutes);
 app.use('/api/habilidades', habilidadRoutes);
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Configurar Swagger UI
+swaggerSetup(app);
+
 const PORT = process.env.PORT || 3002;
 
 // Función para iniciar el servidor con manejo de errores mejorado
@@ -74,6 +77,7 @@ async function startServer() {
     
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`✓ API de personajes y habilidades corriendo en puerto ${PORT}`);
+      console.log(`✓ Documentación Swagger disponible en http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {
     console.error('✗ Error al iniciar el servidor:', error.message);

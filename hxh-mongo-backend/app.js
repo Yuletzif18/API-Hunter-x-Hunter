@@ -97,5 +97,5 @@ swaggerSetup(app);
 const PORT = process.env.PORT || 4002;
 app.listen(PORT, () => {
   console.log(`API Hunter x Hunter escuchando en puerto ${PORT}`);
-  console.log(`Documentación Swagger disponible en http://localhost:${PORT}/docs`);
+  console.log(`Documentación Swagger disponible en http://localhost:${PORT}/api-docs`);
 });
