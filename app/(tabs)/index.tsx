@@ -305,6 +305,149 @@ const TabIndexScreen: React.FC = () => {
           <Button title="Insertar Personaje" onPress={() => setModalVisible(true)} color="#4CAF50" />
         </View>
         <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
+          <Button title="Eliminar Personaje" color="#e74c3c" onPress={async () => {
+            if (!nombre.trim()) {
+              Alert.alert('Aviso', 'Ingresa el nombre del personaje a eliminar');
+              return;
+            }
+            
+            try {
+              // Buscar el personaje en ambas bases de datos
+              let personajeEncontrado = null;
+              let fuenteEncontrada = '';
+              let API_BASE_PERSONAJES = '';
+              let API_BASE_HABILIDADES = '';
+              
+              // Buscar en MongoDB
+              try {
+                const resMongo = await fetch(APIS[0].personajes);
+                if (resMongo.ok) {
+                  const personajesMongo = await resMongo.json();
+                  const found = personajesMongo.find((p: any) => p.nombre.toLowerCase() === nombre.toLowerCase());
+                  if (found) {
+                    personajeEncontrado = found;
+                    fuenteEncontrada = 'MongoDB';
+                    API_BASE_PERSONAJES = APIS[0].personajes;
+                    API_BASE_HABILIDADES = APIS[0].habilidades;
+                  }
+                }
+              } catch (e) {
+                console.log('Error en MongoDB:', e);
+              }
+              
+              // Si no se encontró en MongoDB, buscar en MySQL
+              if (!personajeEncontrado) {
+                try {
+                  const resMySQL = await fetch(APIS[1].personajes);
+                  if (resMySQL.ok) {
+                    const personajesMySQL = await resMySQL.json();
+                    const found = personajesMySQL.find((p: any) => p.nombre.toLowerCase() === nombre.toLowerCase());
+                    if (found) {
+                      personajeEncontrado = found;
+                      fuenteEncontrada = 'MySQL';
+                      API_BASE_PERSONAJES = APIS[1].personajes;
+                      API_BASE_HABILIDADES = APIS[1].habilidades;
+                    }
+                  }
+                } catch (e) {
+                  console.log('Error en MySQL:', e);
+                }
+              }
+              
+              if (personajeEncontrado) {
+                // Confirmar eliminación
+                if (Platform.OS === 'web') {
+                  if (window.confirm(`¿Eliminar a ${personajeEncontrado.nombre} y todas sus habilidades de ${fuenteEncontrada}?`)) {
+                    // Primero eliminar habilidades asociadas
+                    try {
+                      const resHabilidades = await fetch(API_BASE_HABILIDADES);
+                      if (resHabilidades.ok) {
+                        const habilidades = await resHabilidades.json();
+                        const habilidadesDelPersonaje = habilidades.filter((h: any) => 
+                          h.personaje?.toLowerCase() === personajeEncontrado.nombre.toLowerCase()
+                        );
+                        
+                        for (const hab of habilidadesDelPersonaje) {
+                          await fetch(`${API_BASE_HABILIDADES}/${hab._id || hab.id}`, {
+                            method: 'DELETE'
+                          });
+                        }
+                      }
+                    } catch (e) {
+                      console.log('Error eliminando habilidades:', e);
+                    }
+                    
+                    // Luego eliminar el personaje
+                    const deleteRes = await fetch(`${API_BASE_PERSONAJES}/${personajeEncontrado._id || personajeEncontrado.id}`, {
+                      method: 'DELETE'
+                    });
+                    
+                    if (deleteRes.ok) {
+                      window.alert('Personaje y sus habilidades eliminados correctamente');
+                      setPersonaje(null);
+                      setImagen(null);
+                      setNombre('');
+                    } else {
+                      window.alert('Error al eliminar el personaje');
+                    }
+                  }
+                } else {
+                  Alert.alert(
+                    'Confirmar Eliminación',
+                    `¿Eliminar a ${personajeEncontrado.nombre} y todas sus habilidades de ${fuenteEncontrada}?`,
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      {
+                        text: 'Eliminar',
+                        style: 'destructive',
+                        onPress: async () => {
+                          // Primero eliminar habilidades asociadas
+                          try {
+                            const resHabilidades = await fetch(API_BASE_HABILIDADES);
+                            if (resHabilidades.ok) {
+                              const habilidades = await resHabilidades.json();
+                              const habilidadesDelPersonaje = habilidades.filter((h: any) => 
+                                h.personaje?.toLowerCase() === personajeEncontrado.nombre.toLowerCase()
+                              );
+                              
+                              for (const hab of habilidadesDelPersonaje) {
+                                await fetch(`${API_BASE_HABILIDADES}/${hab._id || hab.id}`, {
+                                  method: 'DELETE'
+                                });
+                              }
+                            }
+                          } catch (e) {
+                            console.log('Error eliminando habilidades:', e);
+                          }
+                          
+                          // Luego eliminar el personaje
+                          const deleteRes = await fetch(`${API_BASE_PERSONAJES}/${personajeEncontrado._id || personajeEncontrado.id}`, {
+                            method: 'DELETE'
+                          });
+                          
+                          if (deleteRes.ok) {
+                            Alert.alert('Eliminado', 'Personaje y sus habilidades eliminados correctamente');
+                            setPersonaje(null);
+                            setImagen(null);
+                            setNombre('');
+                          } else {
+                            Alert.alert('Error', 'No se pudo eliminar el personaje');
+                          }
+                        }
+                      }
+                    ]
+                  );
+                }
+              } else {
+                Alert.alert('No encontrado', 'El personaje no existe en ninguna base de datos');
+              }
+            } catch (error) {
+              console.error('Error:', error);
+              Alert.alert('Error', 'No se pudo conectar al servidor');
+            }
+          }} />
+        </View>
+        <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
           <Button title="Listar/Modificar Personajes" color="#2980b9" onPress={async () => {
             try {
               // Obtener personajes de AMBAS bases de datos
@@ -635,14 +778,22 @@ const TabIndexScreen: React.FC = () => {
                                     style={styles.input}
                                     value={habilidad.nombre || ''}
                                     placeholder="Nombre de la habilidad"
-                                    editable={false}
+                                    onChangeText={v => {
+                                      const nuevas = [...habilidadesEdit];
+                                      nuevas[idx] = { ...nuevas[idx], nombre: v };
+                                      setHabilidadesEdit(nuevas);
+                                    }}
                                   />
                                   <Text style={styles.label}>Tipo:</Text>
                                   <TextInput
                                     style={styles.input}
                                     value={habilidad.tipo || ''}
                                     placeholder="Tipo"
-                                    editable={false}
+                                    onChangeText={v => {
+                                      const nuevas = [...habilidadesEdit];
+                                      nuevas[idx] = { ...nuevas[idx], tipo: v };
+                                      setHabilidadesEdit(nuevas);
+                                    }}
                                   />
                                   <Text style={styles.label}>Descripción:</Text>
                                   <TextInput
@@ -650,13 +801,71 @@ const TabIndexScreen: React.FC = () => {
                                     value={habilidad.descripcion || ''}
                                     placeholder="Descripción"
                                     multiline
-                                    editable={false}
+                                    onChangeText={v => {
+                                      const nuevas = [...habilidadesEdit];
+                                      nuevas[idx] = { ...nuevas[idx], descripcion: v };
+                                      setHabilidadesEdit(nuevas);
+                                    }}
+                                  />
+                                  <Button 
+                                    title="Eliminar esta habilidad" 
+                                    color="#e74c3c" 
+                                    onPress={async () => {
+                                      try {
+                                        const API_BASE_HABILIDADES = personajeEdit.fuente === 'MongoDB' 
+                                          ? APIS[0].habilidades 
+                                          : APIS[1].habilidades;
+                                        const habilidadId = habilidad._id || habilidad.id;
+                                        
+                                        const res = await fetch(`${API_BASE_HABILIDADES}/${habilidadId}`, {
+                                          method: 'DELETE'
+                                        });
+                                        
+                                        if (res.ok) {
+                                          Alert.alert('Eliminada', 'Habilidad eliminada correctamente');
+                                          // Actualizar la lista
+                                          const nuevas = habilidadesEdit.filter((_, i) => i !== idx);
+                                          setHabilidadesEdit(nuevas);
+                                        } else {
+                                          Alert.alert('Error', 'No se pudo eliminar la habilidad');
+                                        }
+                                      } catch {
+                                        Alert.alert('Error', 'No se pudo conectar al servidor');
+                                      }
+                                    }}
                                   />
                                 </View>
                               ))}
-                              <Text style={{ fontSize: 11, color: '#999', marginTop: 8, textAlign: 'center' }}>
-                                Las habilidades son de solo lectura aquí
-                              </Text>
+                              <Button 
+                                title="Actualizar Habilidades" 
+                                color="#4CAF50" 
+                                onPress={async () => {
+                                  try {
+                                    const API_BASE_HABILIDADES = personajeEdit.fuente === 'MongoDB' 
+                                      ? APIS[0].habilidades 
+                                      : APIS[1].habilidades;
+                                    
+                                    // Actualizar cada habilidad
+                                    for (const habilidad of habilidadesEdit) {
+                                      const habilidadId = habilidad._id || habilidad.id;
+                                      await fetch(`${API_BASE_HABILIDADES}/${habilidadId}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          nombre: habilidad.nombre,
+                                          tipo: habilidad.tipo,
+                                          descripcion: habilidad.descripcion,
+                                          personaje: habilidad.personaje
+                                        })
+                                      });
+                                    }
+                                    
+                                    Alert.alert('Actualizado', 'Habilidades actualizadas correctamente');
+                                  } catch {
+                                    Alert.alert('Error', 'No se pudo actualizar las habilidades');
+                                  }
+                                }}
+                              />
                             </>
                           )}
                         </View>
