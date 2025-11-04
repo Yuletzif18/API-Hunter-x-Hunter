@@ -25,14 +25,32 @@ exports.crear = async (req, res) => {
   }
 };
 
+exports.obtenerPorPersonaje = async (req, res) => {
+  try {
+    const Habilidad = req.db.model('Habilidad');
+    const habilidades = await Habilidad.find({ personaje: req.params.nombre });
+    if (habilidades.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron habilidades para este personaje' });
+    }
+    res.json(habilidades);
+  } catch (error) {
+    console.error('Error al obtener habilidades:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.modificar = async (req, res) => {
   try {
     const Habilidad = req.db.model('Habilidad');
-    const habilidad = await Habilidad.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!habilidad) {
-      return res.status(404).json({ error: 'Habilidad no encontrada' });
+    const result = await Habilidad.updateMany(
+      { personaje: req.params.nombre },
+      req.body
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Habilidad no encontrada para este personaje' });
     }
-    res.json(habilidad);
+    const habilidades = await Habilidad.find({ personaje: req.params.nombre });
+    res.json(habilidades);
   } catch (error) {
     console.error('Error al modificar habilidad:', error);
     res.status(500).json({ error: error.message });
@@ -42,11 +60,14 @@ exports.modificar = async (req, res) => {
 exports.eliminar = async (req, res) => {
   try {
     const Habilidad = req.db.model('Habilidad');
-    const habilidad = await Habilidad.findByIdAndDelete(req.params.id);
-    if (!habilidad) {
-      return res.status(404).json({ error: 'Habilidad no encontrada' });
+    const result = await Habilidad.deleteMany({ personaje: req.params.nombre });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'No se encontraron habilidades para este personaje' });
     }
-    res.json({ mensaje: 'Habilidad eliminada' });
+    res.json({ 
+      mensaje: 'Habilidades eliminadas', 
+      cantidad: result.deletedCount 
+    });
   } catch (error) {
     console.error('Error al eliminar habilidad:', error);
     res.status(500).json({ error: error.message });

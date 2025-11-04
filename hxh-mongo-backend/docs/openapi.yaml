@@ -89,19 +89,20 @@ paths:
           description: Datos inválidos o incompletos
         '500':
           description: Error interno del servidor
-  /api/personajes/{id}:
+  /api/personajes/{nombre}:
     get:
       tags:
         - Personajes
-      summary: Obtener un personaje por ID
-      description: Retorna los detalles de un personaje específico
+      summary: Obtener un personaje por nombre
+      description: Retorna los detalles de un personaje específico buscando por su nombre
       parameters:
         - in: path
-          name: id
+          name: nombre
           required: true
           schema:
             type: string
-          description: ID único del personaje (MongoDB ObjectId)
+          description: Nombre del personaje
+          example: Gon Freecss
       responses:
         '200':
           description: Personaje encontrado
@@ -116,15 +117,16 @@ paths:
     put:
       tags:
         - Personajes
-      summary: Actualizar un personaje por ID
-      description: Actualiza los datos de un personaje existente
+      summary: Actualizar un personaje por nombre
+      description: Actualiza los datos de un personaje existente identificándolo por su nombre
       parameters:
         - in: path
-          name: id
+          name: nombre
           required: true
           schema:
             type: string
-          description: ID único del personaje (MongoDB ObjectId)
+          description: Nombre del personaje a actualizar
+          example: Gon Freecss
       requestBody:
         required: true
         content:
@@ -147,15 +149,16 @@ paths:
     delete:
       tags:
         - Personajes
-      summary: Eliminar un personaje por ID
-      description: Elimina un personaje de la base de datos (también elimina sus habilidades asociadas)
+      summary: Eliminar un personaje por nombre
+      description: Elimina un personaje de la base de datos por su nombre (también elimina sus habilidades asociadas)
       parameters:
         - in: path
-          name: id
+          name: nombre
           required: true
           schema:
             type: string
-          description: ID único del personaje (MongoDB ObjectId)
+          description: Nombre del personaje a eliminar
+          example: Gon Freecss
       responses:
         '200':
           description: Personaje eliminado exitosamente
@@ -210,42 +213,46 @@ paths:
           description: Datos inválidos o incompletos
         '500':
           description: Error interno del servidor
-  /api/habilidades/{id}:
+  /api/habilidades/{nombre}:
     get:
       tags:
         - Habilidades
-      summary: Obtener una habilidad por ID
-      description: Retorna los detalles de una habilidad específica
+      summary: Obtener habilidades por nombre de personaje
+      description: Retorna todas las habilidades asociadas a un personaje específico
       parameters:
         - in: path
-          name: id
+          name: nombre
           required: true
           schema:
             type: string
-          description: ID único de la habilidad (MongoDB ObjectId)
+          description: Nombre del personaje
+          example: Gon Freecss
       responses:
         '200':
-          description: Habilidad encontrada
+          description: Habilidades encontradas
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Habilidad'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Habilidad'
         '404':
-          description: Habilidad no encontrada
+          description: No se encontraron habilidades para este personaje
         '500':
           description: Error interno del servidor
     put:
       tags:
         - Habilidades
-      summary: Actualizar una habilidad por ID
-      description: Actualiza los datos de una habilidad existente
+      summary: Actualizar una habilidad por nombre de personaje
+      description: Actualiza los datos de una habilidad identificándola por el nombre del personaje
       parameters:
         - in: path
-          name: id
+          name: nombre
           required: true
           schema:
             type: string
-          description: ID único de la habilidad (MongoDB ObjectId)
+          description: Nombre del personaje dueño de la habilidad
+          example: Gon Freecss
       requestBody:
         required: true
         content:
@@ -268,18 +275,19 @@ paths:
     delete:
       tags:
         - Habilidades
-      summary: Eliminar una habilidad por ID
-      description: Elimina una habilidad de la base de datos
+      summary: Eliminar habilidades por nombre de personaje
+      description: Elimina todas las habilidades asociadas a un personaje específico
       parameters:
         - in: path
-          name: id
+          name: nombre
           required: true
           schema:
             type: string
-          description: ID único de la habilidad (MongoDB ObjectId)
+          description: Nombre del personaje cuyas habilidades se eliminarán
+          example: Gon Freecss
       responses:
         '200':
-          description: Habilidad eliminada exitosamente
+          description: Habilidades eliminadas exitosamente
           content:
             application/json:
               schema:
@@ -287,9 +295,9 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: Habilidad eliminada correctamente
+                    example: Habilidades eliminadas correctamente
         '404':
-          description: Habilidad no encontrada
+          description: No se encontraron habilidades para este personaje
         '500':
           description: Error interno del servidor
 components:

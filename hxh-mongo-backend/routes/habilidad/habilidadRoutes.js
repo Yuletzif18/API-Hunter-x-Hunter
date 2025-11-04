@@ -4,7 +4,8 @@ const controller = require('../../controllers/habilidad/habilidadController');
 
 router.get('/', controller.listarTodas);
 router.post('/', controller.crear);
-router.put('/:id', controller.modificar);
-router.delete('/:id', controller.eliminar);
+router.get('/:nombre', controller.obtenerPorPersonaje);
+router.put('/:nombre', controller.modificar);
+router.delete('/:nombre', controller.eliminar);
 
 module.exports = router;
