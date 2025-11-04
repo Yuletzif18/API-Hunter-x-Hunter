@@ -4,7 +4,8 @@ const controller = require('../controllers/personajeController');
 
 router.get('/', controller.listarTodos);
 router.post('/', controller.crear);
-router.put('/:id', controller.modificar);
-router.delete('/:id', controller.eliminar);
+router.get('/:nombre', controller.obtenerPorNombre);
+router.put('/:nombre', controller.modificar);
+router.delete('/:nombre', controller.eliminar);
 
 module.exports = router;
