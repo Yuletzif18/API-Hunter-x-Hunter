@@ -33,6 +33,11 @@ const sequelizeHabilidades = new Sequelize(process.env.MYSQL_URI_HABILIDADES, {
 });
 const Personaje = require('./models/personaje')(sequelizePersonajes);
 const Habilidad = require('./models/habilidad/habilidad')(sequelizeHabilidades);
+
+// Hacer los modelos disponibles globalmente para los controladores
+global.Personaje = Personaje;
+global.Habilidad = Habilidad;
+
 app.use(cors());
 app.use(express.json());
 
