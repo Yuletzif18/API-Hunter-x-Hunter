@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Alert, Button, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Button, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCaballero } from '@/components/CaballeroContext';
 
 // APIs disponibles
 const APIS = {
@@ -16,7 +17,7 @@ const APIS = {
 const HunterXHunterScreen: React.FC = () => {
   // Selector de API: MongoDB o MySQL
   const [apiType, setApiType] = useState<'MONGODB' | 'MYSQL'>('MONGODB');
-  const [dataType, setDataType] = useState<'personajes' | 'habilidades'>('personajes');
+  const { setCaballero } = useCaballero();
   
   // Estados para el CRUD
   const [nombre, setNombre] = useState('');
@@ -31,29 +32,24 @@ const HunterXHunterScreen: React.FC = () => {
     nombre: '', edad: '', altura: '', peso: '', urlImagen: '', genero: '', descripcion: '', habilidad: '', origen: ''
   });
   
-  // Estados del formulario (habilidades)
-  const [formHabilidad, setFormHabilidad] = useState({
-    nombre: '', tipo: '', descripcion: '', personaje: ''
-  });
-  
-  const API_URL = APIS[apiType][dataType];
+  const API_URL = APIS[apiType].personajes;
   
   // Consultar item por nombre
   const consultarItem = async () => {
     try {
       if (!nombre.trim()) {
-        Alert.alert('Aviso', `Ingresa el nombre del ${dataType === 'personajes' ? 'personaje' : 'habilidad'}`);
+        Alert.alert('Aviso', 'Ingresa el nombre del personaje');
         return;
       }
       
-      // Para MongoDB: buscar en la lista
       const res = await fetch(API_URL);
       if (res.ok) {
         const items = await res.json();
         const found = items.find((i: any) => i.nombre.toLowerCase() === nombre.toLowerCase());
         if (found) {
           setItem(found);
-          Alert.alert('Encontrado', `${dataType === 'personajes' ? 'Personaje' : 'Habilidad'} encontrado: ${found.nombre}`);
+          setCaballero(found); // Guardar en Context
+          Alert.alert('Encontrado', `Personaje encontrado: ${found.nombre}\n\nVe a la pestaña "About" para ver todos los detalles y habilidades.`);
         } else {
           setItem(null);
           Alert.alert('No encontrado', 'No existe en la base de datos');
@@ -71,7 +67,7 @@ const HunterXHunterScreen: React.FC = () => {
   // Insertar nuevo item
   const insertarItem = async () => {
     try {
-      const body = dataType === 'personajes' ? formPersonaje : formHabilidad;
+      const body = formPersonaje;
       
       // Validación
       if (!body.nombre.trim()) {
@@ -86,14 +82,10 @@ const HunterXHunterScreen: React.FC = () => {
       });
       
       if (res.ok) {
-        Alert.alert('Éxito', `${dataType === 'personajes' ? 'Personaje' : 'Habilidad'} insertado correctamente`);
+        Alert.alert('Éxito', 'Personaje insertado correctamente');
         setModalVisible(false);
         // Limpiar formulario
-        if (dataType === 'personajes') {
-          setFormPersonaje({ nombre: '', edad: '', altura: '', peso: '', urlImagen: '', genero: '', descripcion: '', habilidad: '', origen: '' });
-        } else {
-          setFormHabilidad({ nombre: '', tipo: '', descripcion: '', personaje: '' });
-        }
+        setFormPersonaje({ nombre: '', edad: '', altura: '', peso: '', urlImagen: '', genero: '', descripcion: '', habilidad: '', origen: '' });
       } else {
         const errorData = await res.json();
         Alert.alert('Error', errorData.error || 'No se pudo insertar');
@@ -108,7 +100,7 @@ const HunterXHunterScreen: React.FC = () => {
   const eliminarItem = async () => {
     try {
       if (!nombre.trim()) {
-        Alert.alert('Aviso', `Ingresa el nombre del ${dataType === 'personajes' ? 'personaje' : 'habilidad'} a eliminar`);
+        Alert.alert('Aviso', 'Ingresa el nombre del personaje a eliminar');
         return;
       }
       
@@ -124,7 +116,7 @@ const HunterXHunterScreen: React.FC = () => {
           });
           
           if (deleteRes.ok) {
-            Alert.alert('Eliminado', `${dataType === 'personajes' ? 'Personaje' : 'Habilidad'} eliminado correctamente`);
+            Alert.alert('Eliminado', 'Personaje eliminado correctamente');
             setItem(null);
             setNombre('');
           } else {
@@ -173,7 +165,7 @@ const HunterXHunterScreen: React.FC = () => {
       });
       
       if (res.ok) {
-        Alert.alert('Actualizado', `${dataType === 'personajes' ? 'Personaje' : 'Habilidad'} actualizado correctamente`);
+        Alert.alert('Actualizado', 'Personaje actualizado correctamente');
         // Refrescar lista
         listarItems();
       } else {
@@ -188,7 +180,7 @@ const HunterXHunterScreen: React.FC = () => {
   
   return (
     <ScrollView style={styles.container}>
-      {/* Selector de API y Tipo de Datos */}
+      {/* Selector de API */}
       <View style={styles.selectorContainer}>
         <Text style={styles.selectorTitle}>Seleccionar Base de Datos:</Text>
         <View style={styles.buttonRow}>
@@ -206,22 +198,6 @@ const HunterXHunterScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
         
-        <Text style={styles.selectorTitle}>Seleccionar Entidad:</Text>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity 
-            style={[styles.selectorButton, dataType === 'personajes' && styles.selectorButtonActive]}
-            onPress={() => { setDataType('personajes'); setItem(null); setNombre(''); }}
-          >
-            <Text style={[styles.selectorButtonText, dataType === 'personajes' && styles.selectorButtonTextActive]}>Personajes</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.selectorButton, dataType === 'habilidades' && styles.selectorButtonActive]}
-            onPress={() => { setDataType('habilidades'); setItem(null); setNombre(''); }}
-          >
-            <Text style={[styles.selectorButtonText, dataType === 'habilidades' && styles.selectorButtonTextActive]}>Habilidades</Text>
-          </TouchableOpacity>
-        </View>
-        
         <Text style={styles.apiInfo}>
           API Actual: {apiType} - {API_URL}
         </Text>
@@ -230,7 +206,7 @@ const HunterXHunterScreen: React.FC = () => {
       {/* Búsqueda */}
       <View style={styles.searchContainer}>
         <TextInput
-          placeholder={`Nombre del ${dataType === 'personajes' ? 'personaje' : 'habilidad'}`}
+          placeholder="Nombre del personaje"
           value={nombre}
           onChangeText={setNombre}
           style={styles.input}
@@ -251,32 +227,15 @@ const HunterXHunterScreen: React.FC = () => {
         </View>
       </View>
       
-      {/* Mostrar Item Consultado */}
+      {/* Mostrar Personaje Consultado - SOLO NOMBRE E IMAGEN */}
       {item && (
         <View style={styles.itemContainer}>
-          <Text style={styles.itemTitle}>{dataType === 'personajes' ? 'Personaje' : 'Habilidad'} Encontrado:</Text>
-          {dataType === 'personajes' ? (
-            <View>
-              {item.urlImagen && (
-                <Image source={{ uri: item.urlImagen }} style={styles.image} resizeMode="contain" />
-              )}
-              <Text style={styles.itemText}><Text style={styles.bold}>Nombre:</Text> {item.nombre}</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Edad:</Text> {item.edad || 'N/A'}</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Altura:</Text> {item.altura || 'N/A'} cm</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Peso:</Text> {item.peso || 'N/A'} kg</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Género:</Text> {item.genero || 'N/A'}</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Descripción:</Text> {item.descripcion || 'N/A'}</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Habilidad:</Text> {item.habilidad || 'N/A'}</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Origen:</Text> {item.origen || 'N/A'}</Text>
-            </View>
-          ) : (
-            <View>
-              <Text style={styles.itemText}><Text style={styles.bold}>Nombre:</Text> {item.nombre}</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Tipo:</Text> {item.tipo || 'N/A'}</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Descripción:</Text> {item.descripcion || 'N/A'}</Text>
-              <Text style={styles.itemText}><Text style={styles.bold}>Personaje:</Text> {item.personaje || 'N/A'}</Text>
-            </View>
+          <Text style={styles.itemTitle}>Personaje Encontrado:</Text>
+          {item.urlImagen && (
+            <Image source={{ uri: item.urlImagen }} style={styles.image} resizeMode="contain" />
           )}
+          <Text style={styles.itemText}><Text style={styles.bold}>Nombre:</Text> {item.nombre}</Text>
+          <Text style={styles.infoText}>📌 Ve a la pestaña "About" para ver detalles completos y habilidades</Text>
         </View>
       )}
       
@@ -285,28 +244,17 @@ const HunterXHunterScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView>
-              <Text style={styles.modalTitle}>Insertar {dataType === 'personajes' ? 'Personaje' : 'Habilidad'}</Text>
+              <Text style={styles.modalTitle}>Insertar Personaje</Text>
               
-              {dataType === 'personajes' ? (
-                <View>
-                  <TextInput placeholder="Nombre *" value={formPersonaje.nombre} onChangeText={v => setFormPersonaje(f => ({ ...f, nombre: v }))} style={styles.input} />
-                  <TextInput placeholder="Edad" value={formPersonaje.edad} onChangeText={v => setFormPersonaje(f => ({ ...f, edad: v }))} style={styles.input} keyboardType="numeric" />
-                  <TextInput placeholder="Altura (cm)" value={formPersonaje.altura} onChangeText={v => setFormPersonaje(f => ({ ...f, altura: v }))} style={styles.input} keyboardType="numeric" />
-                  <TextInput placeholder="Peso (kg)" value={formPersonaje.peso} onChangeText={v => setFormPersonaje(f => ({ ...f, peso: v }))} style={styles.input} keyboardType="numeric" />
-                  <TextInput placeholder="URL Imagen *" value={formPersonaje.urlImagen} onChangeText={v => setFormPersonaje(f => ({ ...f, urlImagen: v }))} style={styles.input} />
-                  <TextInput placeholder="Género" value={formPersonaje.genero} onChangeText={v => setFormPersonaje(f => ({ ...f, genero: v }))} style={styles.input} />
-                  <TextInput placeholder="Descripción" value={formPersonaje.descripcion} onChangeText={v => setFormPersonaje(f => ({ ...f, descripcion: v }))} style={styles.input} multiline />
-                  <TextInput placeholder="Habilidad" value={formPersonaje.habilidad} onChangeText={v => setFormPersonaje(f => ({ ...f, habilidad: v }))} style={styles.input} />
-                  <TextInput placeholder="Origen" value={formPersonaje.origen} onChangeText={v => setFormPersonaje(f => ({ ...f, origen: v }))} style={styles.input} />
-                </View>
-              ) : (
-                <View>
-                  <TextInput placeholder="Nombre *" value={formHabilidad.nombre} onChangeText={v => setFormHabilidad(f => ({ ...f, nombre: v }))} style={styles.input} />
-                  <TextInput placeholder="Tipo" value={formHabilidad.tipo} onChangeText={v => setFormHabilidad(f => ({ ...f, tipo: v }))} style={styles.input} />
-                  <TextInput placeholder="Descripción" value={formHabilidad.descripcion} onChangeText={v => setFormHabilidad(f => ({ ...f, descripcion: v }))} style={styles.input} multiline />
-                  <TextInput placeholder="Personaje *" value={formHabilidad.personaje} onChangeText={v => setFormHabilidad(f => ({ ...f, personaje: v }))} style={styles.input} />
-                </View>
-              )}
+              <TextInput placeholder="Nombre *" value={formPersonaje.nombre} onChangeText={v => setFormPersonaje(f => ({ ...f, nombre: v }))} style={styles.input} />
+              <TextInput placeholder="Edad" value={formPersonaje.edad} onChangeText={v => setFormPersonaje(f => ({ ...f, edad: v }))} style={styles.input} keyboardType="numeric" />
+              <TextInput placeholder="Altura (cm)" value={formPersonaje.altura} onChangeText={v => setFormPersonaje(f => ({ ...f, altura: v }))} style={styles.input} keyboardType="numeric" />
+              <TextInput placeholder="Peso (kg)" value={formPersonaje.peso} onChangeText={v => setFormPersonaje(f => ({ ...f, peso: v }))} style={styles.input} keyboardType="numeric" />
+              <TextInput placeholder="URL Imagen *" value={formPersonaje.urlImagen} onChangeText={v => setFormPersonaje(f => ({ ...f, urlImagen: v }))} style={styles.input} />
+              <TextInput placeholder="Género" value={formPersonaje.genero} onChangeText={v => setFormPersonaje(f => ({ ...f, genero: v }))} style={styles.input} />
+              <TextInput placeholder="Descripción" value={formPersonaje.descripcion} onChangeText={v => setFormPersonaje(f => ({ ...f, descripcion: v }))} style={styles.input} multiline />
+              <TextInput placeholder="Habilidad" value={formPersonaje.habilidad} onChangeText={v => setFormPersonaje(f => ({ ...f, habilidad: v }))} style={styles.input} />
+              <TextInput placeholder="Origen" value={formPersonaje.origen} onChangeText={v => setFormPersonaje(f => ({ ...f, origen: v }))} style={styles.input} />
               
               <View style={styles.modalButtons}>
                 <Button title="Insertar" onPress={insertarItem} color="#4CAF50" />
@@ -323,7 +271,7 @@ const HunterXHunterScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView>
-              <Text style={styles.modalTitle}>Lista de {dataType === 'personajes' ? 'Personajes' : 'Habilidades'}</Text>
+              <Text style={styles.modalTitle}>Lista de Personajes</Text>
               
               {!itemEdit ? (
                 <View>
@@ -348,26 +296,15 @@ const HunterXHunterScreen: React.FC = () => {
                 <View>
                   <Text style={styles.subtitle}>Editando: {itemEdit.nombre}</Text>
                   
-                  {dataType === 'personajes' ? (
-                    <View>
-                      <TextInput placeholder="Nombre" value={itemEdit.nombre || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, nombre: v }))} style={styles.input} />
-                      <TextInput placeholder="Edad" value={String(itemEdit.edad || '')} onChangeText={v => setItemEdit((e: any) => ({ ...e, edad: v }))} style={styles.input} keyboardType="numeric" />
-                      <TextInput placeholder="Altura" value={String(itemEdit.altura || '')} onChangeText={v => setItemEdit((e: any) => ({ ...e, altura: v }))} style={styles.input} keyboardType="numeric" />
-                      <TextInput placeholder="Peso" value={String(itemEdit.peso || '')} onChangeText={v => setItemEdit((e: any) => ({ ...e, peso: v }))} style={styles.input} keyboardType="numeric" />
-                      <TextInput placeholder="URL Imagen" value={itemEdit.urlImagen || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, urlImagen: v }))} style={styles.input} />
-                      <TextInput placeholder="Género" value={itemEdit.genero || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, genero: v }))} style={styles.input} />
-                      <TextInput placeholder="Descripción" value={itemEdit.descripcion || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, descripcion: v }))} style={styles.input} multiline />
-                      <TextInput placeholder="Habilidad" value={itemEdit.habilidad || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, habilidad: v }))} style={styles.input} />
-                      <TextInput placeholder="Origen" value={itemEdit.origen || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, origen: v }))} style={styles.input} />
-                    </View>
-                  ) : (
-                    <View>
-                      <TextInput placeholder="Nombre" value={itemEdit.nombre || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, nombre: v }))} style={styles.input} />
-                      <TextInput placeholder="Tipo" value={itemEdit.tipo || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, tipo: v }))} style={styles.input} />
-                      <TextInput placeholder="Descripción" value={itemEdit.descripcion || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, descripcion: v }))} style={styles.input} multiline />
-                      <TextInput placeholder="Personaje" value={itemEdit.personaje || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, personaje: v }))} style={styles.input} />
-                    </View>
-                  )}
+                  <TextInput placeholder="Nombre" value={itemEdit.nombre || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, nombre: v }))} style={styles.input} />
+                  <TextInput placeholder="Edad" value={String(itemEdit.edad || '')} onChangeText={v => setItemEdit((e: any) => ({ ...e, edad: v }))} style={styles.input} keyboardType="numeric" />
+                  <TextInput placeholder="Altura" value={String(itemEdit.altura || '')} onChangeText={v => setItemEdit((e: any) => ({ ...e, altura: v }))} style={styles.input} keyboardType="numeric" />
+                  <TextInput placeholder="Peso" value={String(itemEdit.peso || '')} onChangeText={v => setItemEdit((e: any) => ({ ...e, peso: v }))} style={styles.input} keyboardType="numeric" />
+                  <TextInput placeholder="URL Imagen" value={itemEdit.urlImagen || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, urlImagen: v }))} style={styles.input} />
+                  <TextInput placeholder="Género" value={itemEdit.genero || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, genero: v }))} style={styles.input} />
+                  <TextInput placeholder="Descripción" value={itemEdit.descripcion || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, descripcion: v }))} style={styles.input} multiline />
+                  <TextInput placeholder="Habilidad" value={itemEdit.habilidad || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, habilidad: v }))} style={styles.input} />
+                  <TextInput placeholder="Origen" value={itemEdit.origen || ''} onChangeText={v => setItemEdit((e: any) => ({ ...e, origen: v }))} style={styles.input} />
                   
                   <View style={styles.modalButtons}>
                     <Button title="Actualizar" onPress={actualizarItem} color="#4CAF50" />
@@ -493,6 +430,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
     color: '#555',
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#2196F3',
+    marginTop: 8,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   bold: {
     fontWeight: 'bold',

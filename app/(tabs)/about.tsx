@@ -2,33 +2,74 @@
 
 import { useCaballero } from '@/components/CaballeroContext';
 import React, { useEffect, useState } from 'react';
-import { Button, Image, Modal, ScrollView, Text, View } from 'react-native';
-// API_URL eliminado. Usar rutas relativas para conectar con backend.
+import { Button, Image, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+
+// APIs disponibles para habilidades
+const APIS_HABILIDADES = {
+  MONGODB: 'https://api-hunter-x-hunter-mongodb.up.railway.app/api/habilidades',
+  MYSQL: 'https://api-hunter-x-hunter-mysql.up.railway.app/api/habilidades',
+};
 
 export default function AboutScreen() {
   const [modalVisible, setModalVisible] = useState(false);
-  const { caballero } = useCaballero();
-  const [batallas, setBatallas] = useState([]);
+  const [habilidadesModalVisible, setHabilidadesModalVisible] = useState(false);
+  const { caballero: personaje } = useCaballero();
+  const [habilidades, setHabilidades] = useState<any[]>([]);
+  const [apiType, setApiType] = useState<'MONGODB' | 'MYSQL'>('MONGODB');
 
   useEffect(() => {
-    // Consulta las batallas donde participa el caballero
-    if (caballero && caballero.nombre) {
-      fetch(`https://api-caballerosdelzodiaco-1-4.onrender.com/api/batallas/${encodeURIComponent(caballero.nombre)}`)
+    // Consulta las habilidades relacionadas con el personaje
+    if (personaje && personaje.nombre) {
+      const API_URL = APIS_HABILIDADES[apiType];
+      fetch(API_URL)
         .then(res => res.ok ? res.json() : [])
-        .then(data => setBatallas(data))
-        .catch(() => setBatallas([]));
+        .then(data => {
+          // Filtrar habilidades que pertenecen a este personaje
+          const habilidadesPersonaje = data.filter((h: any) => 
+            h.personaje?.toLowerCase() === personaje.nombre.toLowerCase()
+          );
+          setHabilidades(habilidadesPersonaje);
+        })
+        .catch(() => setHabilidades([]));
     }
-  }, [caballero]);
+  }, [personaje, apiType]);
 
-  if (!caballero) return (
+  if (!personaje) return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>No hay caballero consultado.</Text>
+      <Text>No hay personaje consultado.</Text>
+      <Text style={{ fontSize: 12, color: '#666', marginTop: 8 }}>Ve a la pestaña "Hunter x Hunter" para consultar un personaje</Text>
     </View>
   );
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      {(caballero.imagen && (caballero.imagen.startsWith('http') || caballero.imagen.startsWith('/')))
+      {/* Selector de API para habilidades */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 10 }}>
+        <TouchableOpacity 
+          style={{ 
+            padding: 10, 
+            marginHorizontal: 4, 
+            backgroundColor: apiType === 'MONGODB' ? '#2196F3' : '#e0e0e0', 
+            borderRadius: 8 
+          }}
+          onPress={() => setApiType('MONGODB')}
+        >
+          <Text style={{ color: apiType === 'MONGODB' ? '#fff' : '#666', fontWeight: '600' }}>MongoDB</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={{ 
+            padding: 10, 
+            marginHorizontal: 4, 
+            backgroundColor: apiType === 'MYSQL' ? '#2196F3' : '#e0e0e0', 
+            borderRadius: 8 
+          }}
+          onPress={() => setApiType('MYSQL')}
+        >
+          <Text style={{ color: apiType === 'MYSQL' ? '#fff' : '#666', fontWeight: '600' }}>MySQL</Text>
+        </TouchableOpacity>
+      </View>
+
+      {(personaje.urlImagen && (personaje.urlImagen.startsWith('http') || personaje.urlImagen.startsWith('/')))
         ? (
           <View style={{
             maxWidth: 320,
@@ -45,7 +86,7 @@ export default function AboutScreen() {
             padding: 8,
           }}>
             <Image
-              source={{ uri: caballero.imagen }}
+              source={{ uri: personaje.urlImagen }}
               style={{ width: '100%', height: 200, borderRadius: 18, objectFit: 'contain' }}
               resizeMode="contain"
               onError={() => alert('No se pudo cargar la imagen')}
@@ -66,8 +107,13 @@ export default function AboutScreen() {
             <Text style={{ color: '#aaa' }}>Sin imagen</Text>
           </View>
         )}
-      <Text style={{ fontSize: 18, color: '#666', marginTop: 10 }}>Constelación: {caballero.constelacion}</Text>
-      <Button title="Ver" onPress={() => setModalVisible(true)} />
+      <Text style={{ fontSize: 18, color: '#666', marginTop: 10 }}>Nombre: {personaje.nombre}</Text>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+        <Button title="Ver Detalles" onPress={() => setModalVisible(true)} />
+        <Button title="Ver Habilidades" onPress={() => setHabilidadesModalVisible(true)} color="#FF9800" />
+      </View>
+      
+      {/* Modal Detalles del Personaje */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -75,27 +121,57 @@ export default function AboutScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, maxHeight: '80%' }}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, maxHeight: '80%', width: '90%' }}>
             <ScrollView>
-              <Text style={{ fontSize: 22, fontWeight: 'bold' }}>{caballero.nombre}</Text>
-              <Text style={{ fontSize: 18 }}>Signo: {caballero.signo}</Text>
-              <Text style={{ fontSize: 18 }}>Rango: {caballero.rango}</Text>
-              <Text style={{ fontSize: 18 }}>Constelación: {caballero.constelacion}</Text>
-              <Text style={{ fontSize: 18 }}>Género: {caballero.genero}</Text>
-              <Text style={{ fontSize: 16, marginVertical: 8 }}>Descripción: {caballero.descripcion}</Text>
-              <Text style={{ fontSize: 18, marginTop: 10, fontWeight: 'bold' }}>Batallas:</Text>
-              {batallas.length === 0 && <Text>No hay batallas registradas.</Text>}
-              {batallas.map((b, i) => (
-                <View key={i} style={{ marginBottom: 10 }}>
-                  <Text>Fecha: {b.fecha}</Text>
-                  <Text>Participantes: {Array.isArray(b.participantes) ? b.participantes.join(', ') : b.participantes}</Text>
-                  <Text>Ganador: {b.ganador}</Text>
-                  <Text>Ubicación: {b.ubicacion}</Text>
-                  <Text>Comentario: {b.comentario}</Text>
-                </View>
-              ))}
+              <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 10 }}>{personaje.nombre}</Text>
+              <Text style={{ fontSize: 16, marginBottom: 5 }}>Edad: {personaje.edad || 'N/A'}</Text>
+              <Text style={{ fontSize: 16, marginBottom: 5 }}>Altura: {personaje.altura || 'N/A'} cm</Text>
+              <Text style={{ fontSize: 16, marginBottom: 5 }}>Peso: {personaje.peso || 'N/A'} kg</Text>
+              <Text style={{ fontSize: 16, marginBottom: 5 }}>Género: {personaje.genero || 'N/A'}</Text>
+              <Text style={{ fontSize: 16, marginBottom: 5 }}>Origen: {personaje.origen || 'N/A'}</Text>
+              <Text style={{ fontSize: 16, marginVertical: 8 }}>Descripción: {personaje.descripcion || 'N/A'}</Text>
+              <Text style={{ fontSize: 16, marginBottom: 5 }}>Habilidad Principal: {personaje.habilidad || 'N/A'}</Text>
             </ScrollView>
             <Button title="Cerrar" onPress={() => setModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Habilidades del Personaje */}
+      <Modal
+        visible={habilidadesModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setHabilidadesModalVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, maxHeight: '80%', width: '90%' }}>
+            <ScrollView>
+              <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 10 }}>Habilidades de {personaje.nombre}</Text>
+              <Text style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>Base de datos: {apiType}</Text>
+              
+              {habilidades.length === 0 ? (
+                <Text style={{ color: '#999', textAlign: 'center', marginVertical: 20 }}>
+                  No hay habilidades registradas para este personaje en {apiType}
+                </Text>
+              ) : (
+                habilidades.map((h, i) => (
+                  <View key={i} style={{ 
+                    marginBottom: 16, 
+                    padding: 12, 
+                    backgroundColor: '#f6f6f6', 
+                    borderRadius: 8,
+                    borderLeftWidth: 4,
+                    borderLeftColor: '#2196F3'
+                  }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 6 }}>{h.nombre}</Text>
+                    <Text style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>Tipo: {h.tipo || 'N/A'}</Text>
+                    <Text style={{ fontSize: 14, marginTop: 4 }}>Descripción: {h.descripcion || 'N/A'}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            <Button title="Cerrar" onPress={() => setHabilidadesModalVisible(false)} />
           </View>
         </View>
       </Modal>
