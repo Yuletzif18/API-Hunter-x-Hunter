@@ -11,7 +11,7 @@ const APIS = [
   },
   {
     nombre: 'MySQL Personajes',
-    url: 'https://api-hunter-x-hunter-production.up.railway.app/api/personajes',
+    url: 'https://api-hunter-x-hunter-mysql.up.railway.app/api/personajes',
     tipo: 'personajes'
   },
   {
