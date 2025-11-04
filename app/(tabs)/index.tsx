@@ -6,10 +6,24 @@ import { Alert, Button, Image, Modal, Platform, ScrollView, StyleSheet, Text, Te
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-// API Backend desplegado en Railway
-const API_URL = 'https://mysql-backend-proyecto.up.railway.app';
+// APIs disponibles
+const APIS = {
+  MONGODB: {
+    personajes: 'https://api-hunter-x-hunter-mongodb.up.railway.app/api/personajes',
+    habilidades: 'https://api-hunter-x-hunter-mongodb.up.railway.app/api/habilidades',
+  },
+  MYSQL: {
+    personajes: 'https://api-hunter-x-hunter-production.up.railway.app/api/personajes',
+    habilidades: 'https://api-hunter-x-hunter-mysql.up.railway.app/api/habilidades',
+  }
+};
 
 const TabIndexScreen: React.FC = () => {
+  // Selector de API: MongoDB o MySQL
+  const [apiType, setApiType] = useState<'MONGODB' | 'MYSQL'>('MONGODB');
+  const [dataType, setDataType] = useState<'personajes' | 'habilidades'>('personajes');
+  
+  const API_URL = APIS[apiType][dataType];
   const [showEditSection, setShowEditSection] = useState<'caballero' | 'batalla'>('caballero');
 
   // --- lógica de gestos ---
