@@ -11,26 +11,27 @@ const { swaggerSpec, swaggerUi } = require('./swagger');
 
 // Servidor único para personajes y habilidades
 const app = express();
-const sequelizePersonajes = new Sequelize(process.env.MYSQL_URI_PERSONAJES, {
+
+// Configuración de conexión MySQL con timeout aumentado y retry
+const dbConfig = {
   dialect: 'mysql',
   logging: false,
   pool: {
     max: 5,
     min: 0,
-    acquire: 30000,
+    acquire: 60000, // Aumentado a 60 segundos
     idle: 10000
+  },
+  dialectOptions: {
+    connectTimeout: 60000 // Timeout de 60 segundos
+  },
+  retry: {
+    max: 3 // Reintentar 3 veces
   }
-});
-const sequelizeHabilidades = new Sequelize(process.env.MYSQL_URI_HABILIDADES, {
-  dialect: 'mysql',
-  logging: false,
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000
-  }
-});
+};
+
+const sequelizePersonajes = new Sequelize(process.env.MYSQL_URI_PERSONAJES || process.env.DATABASE_URL, dbConfig);
+const sequelizeHabilidades = new Sequelize(process.env.MYSQL_URI_HABILIDADES || process.env.DATABASE_URL, dbConfig);
 const Personaje = require('./models/personaje')(sequelizePersonajes);
 const Habilidad = require('./models/habilidad/habilidad')(sequelizeHabilidades);
 
@@ -55,9 +56,30 @@ app.use('/api/habilidades', habilidadRoutes);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 const PORT = process.env.PORT || 3002;
 
-Promise.all([
-  sequelizePersonajes.sync(),
-  sequelizeHabilidades.sync()
-]).then(() => {
-  app.listen(PORT, () => console.log(`API de personajes y habilidades corriendo en puerto ${PORT}`));
-});
+// Función para iniciar el servidor con manejo de errores mejorado
+async function startServer() {
+  try {
+    console.log('Intentando conectar a las bases de datos...');
+    await Promise.all([
+      sequelizePersonajes.authenticate(),
+      sequelizeHabilidades.authenticate()
+    ]);
+    console.log('✓ Conexiones a bases de datos establecidas correctamente');
+    
+    await Promise.all([
+      sequelizePersonajes.sync(),
+      sequelizeHabilidades.sync()
+    ]);
+    console.log('✓ Modelos sincronizados correctamente');
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✓ API de personajes y habilidades corriendo en puerto ${PORT}`);
+    });
+  } catch (error) {
+    console.error('✗ Error al iniciar el servidor:', error.message);
+    console.error('Detalles:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
