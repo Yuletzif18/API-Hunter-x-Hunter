@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../../controllers/habilidad/habilidadController');
+const { verificarAuth, verificarAdmin } = require('../../middleware/authMiddleware');
 
-router.get('/', controller.listarTodas);
-router.post('/', controller.crear);
-router.get('/:nombre', controller.obtenerPorPersonaje);
-router.put('/:nombre', controller.modificar);
-router.delete('/:nombre', controller.eliminar);
+// Rutas públicas (lectura) - requieren autenticación pero cualquier rol
+router.get('/', verificarAuth, controller.listarTodas);
+router.get('/:nombre', verificarAuth, controller.obtenerPorPersonaje);
+
+// Rutas protegidas (escritura) - solo admin
+router.post('/', verificarAuth, verificarAdmin, controller.crear);
+router.put('/:nombre', verificarAuth, verificarAdmin, controller.modificar);
+router.delete('/:nombre', verificarAuth, verificarAdmin, controller.eliminar);
 
 module.exports = router;

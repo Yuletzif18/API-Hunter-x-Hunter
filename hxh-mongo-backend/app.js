@@ -7,6 +7,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const personajeRoutes = require('./routes/personajeRoutes');
 const habilidadRoutes = require('./routes/habilidad/habilidadRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 // Validar variables de entorno
 if (!process.env.MONGODB_URI_PERSONAJES || !process.env.MONGODB_URI_HABILIDADES) {
@@ -49,6 +50,11 @@ const HabilidadSchema = require('./models/habilidad/Habilidad').schema;
 connHabilidades.model('Habilidad', HabilidadSchema, 'habilidades');
 console.log('Modelo Habilidad registrado en colección "habilidades" de la base Habilidades_hunterXhunter');
 
+// Registrar modelo de Usuario en la base de Personajes
+const UsuarioSchema = require('./models/Usuario').schema;
+connPersonajes.model('Usuario', UsuarioSchema, 'usuarios');
+console.log('Modelo Usuario registrado en colección "usuarios" de la base Personajes_hunterXhunter');
+
 // Unificar servidor para Render
 const app = express();
 app.use(cors());
@@ -72,6 +78,7 @@ app.get('/', (req, res) => {
   res.json({
     message: 'API Hunter x Hunter - MongoDB Backend',
     endpoints: {
+      auth: '/api/auth',
       personajes: '/api/personajes',
       habilidades: '/api/habilidades',
       docs: '/docs',
@@ -82,7 +89,7 @@ app.get('/', (req, res) => {
 
 // Middleware para seleccionar la conexión según el endpoint
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/personajes')) {
+  if (req.path.startsWith('/api/personajes') || req.path.startsWith('/api/auth')) {
     req.db = connPersonajes;
   } else if (req.path.startsWith('/api/habilidades')) {
     req.db = connHabilidades;
@@ -90,6 +97,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/personajes', personajeRoutes);
 app.use('/api/habilidades', habilidadRoutes);
 swaggerSetup(app);
