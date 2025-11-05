@@ -119,8 +119,16 @@ const TabIndexScreen: React.FC = () => {
   // Helper para agregar token a las peticiones
   const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     if (!token) {
+      console.error('❌ fetchWithAuth: No hay token disponible');
       throw new Error('No hay token de autenticación');
     }
+    
+    console.log('🔐 fetchWithAuth:', {
+      url,
+      method: options.method || 'GET',
+      hasToken: !!token,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'null'
+    });
     
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
@@ -131,6 +139,8 @@ const TabIndexScreen: React.FC = () => {
     if (options.body && !headers['Content-Type']) {
       headers['Content-Type'] = 'application/json';
     }
+    
+    console.log('📤 Headers:', headers);
     
     return fetch(url, { ...options, headers });
   };
