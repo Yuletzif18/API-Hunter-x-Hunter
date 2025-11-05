@@ -324,7 +324,111 @@ Ambas APIs siguen el estándar **OpenAPI 3.1.0** con:
 
 ---
 
-## 🎮 Scripts Útiles
+## � Desplegar Frontend en Vercel
+
+Tu app Expo puede desplegarse como una **Progressive Web App (PWA)** en Vercel:
+
+### Opción A: Despliegue Automático (Recomendado)
+
+1. **Conecta tu repositorio a Vercel:**
+   - Ve a [vercel.com](https://vercel.com)
+   - Click en "Add New Project"
+   - Importa tu repositorio de GitHub
+   - Vercel detectará automáticamente la configuración de `vercel.json`
+
+2. **Configuración automática:**
+   - Build Command: `npx expo export -p web`
+   - Output Directory: `dist`
+   - Install Command: `npm install`
+
+3. **Variables de entorno en Vercel:**
+   ```
+   EXPO_PUBLIC_API_MONGODB=https://api-hunter-x-hunter-mongodb.up.railway.app
+   EXPO_PUBLIC_API_MYSQL=https://api-hunter-x-hunter-mysql.up.railway.app
+   ```
+
+4. **Deploy:** Vercel desplegará automáticamente en cada push a `main`
+
+### Opción B: Despliegue Manual con CLI
+
+```bash
+# Instalar Vercel CLI
+npm install -g vercel
+
+# Login
+vercel login
+
+# Desplegar
+vercel
+
+# Desplegar a producción
+vercel --prod
+```
+
+### 🎯 Resultado
+- Tu app estará disponible en: `https://tu-proyecto.vercel.app`
+- Accesible desde cualquier navegador web
+- PWA instalable en móviles
+- **Limitación:** No tendrá acceso a funcionalidades nativas (cámara, GPS, etc.) como en Expo Go
+
+---
+
+## 📱 Publicar App Móvil Nativa
+
+Para publicar en **Google Play Store** o **App Store**, usa **Expo Application Services (EAS)**:
+
+### 1. Instalar EAS CLI
+```bash
+npm install -g eas-cli
+```
+
+### 2. Login en Expo
+```bash
+eas login
+```
+
+### 3. Configurar el proyecto
+```bash
+eas build:configure
+```
+
+### 4. Build para Android (APK)
+```bash
+# Preview build (APK para testing)
+eas build -p android --profile preview
+
+# Production build (AAB para Google Play)
+eas build -p android --profile production
+```
+
+### 5. Build para iOS
+```bash
+# Requiere cuenta de Apple Developer ($99/año)
+eas build -p ios --profile production
+```
+
+### 6. Submit a Stores
+```bash
+# Android
+eas submit -p android
+
+# iOS
+eas submit -p ios
+```
+
+### 📦 Comparación de Opciones
+
+| Opción | Plataforma | Costo | Funcionalidades | Instalación |
+|--------|-----------|-------|-----------------|-------------|
+| **Vercel (Web)** | Web/PWA | Gratis | Limitadas (sin acceso a hardware) | Navegador + PWA |
+| **EAS Build** | Android/iOS | Gratis* | Completas (acceso nativo) | Stores oficiales |
+| **Expo Go** | Dev only | Gratis | Completas | App Expo Go |
+
+*EAS Build gratis tiene límites mensuales. iOS requiere Apple Developer account.
+
+---
+
+## �🎮 Scripts Útiles
 
 ### Frontend
 ```bash
