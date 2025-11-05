@@ -358,27 +358,17 @@ const TabIndexScreen: React.FC = () => {
                 // Confirmar eliminación
                 if (Platform.OS === 'web') {
                   if (window.confirm(`¿Eliminar a ${personajeEncontrado.nombre} y todas sus habilidades de ${fuenteEncontrada}?`)) {
-                    // Primero eliminar habilidades asociadas
+                    // Primero eliminar habilidades asociadas por nombre del personaje
                     try {
-                      const resHabilidades = await fetch(API_BASE_HABILIDADES);
-                      if (resHabilidades.ok) {
-                        const habilidades = await resHabilidades.json();
-                        const habilidadesDelPersonaje = habilidades.filter((h: any) => 
-                          h.personaje?.toLowerCase() === personajeEncontrado.nombre.toLowerCase()
-                        );
-                        
-                        for (const hab of habilidadesDelPersonaje) {
-                          await fetch(`${API_BASE_HABILIDADES}/${hab._id || hab.id}`, {
-                            method: 'DELETE'
-                          });
-                        }
-                      }
+                      await fetch(`${API_BASE_HABILIDADES}/${encodeURIComponent(personajeEncontrado.nombre)}`, {
+                        method: 'DELETE'
+                      });
                     } catch (e) {
                       console.log('Error eliminando habilidades:', e);
                     }
                     
-                    // Luego eliminar el personaje
-                    const deleteRes = await fetch(`${API_BASE_PERSONAJES}/${personajeEncontrado._id || personajeEncontrado.id}`, {
+                    // Luego eliminar el personaje por nombre
+                    const deleteRes = await fetch(`${API_BASE_PERSONAJES}/${encodeURIComponent(personajeEncontrado.nombre)}`, {
                       method: 'DELETE'
                     });
                     
@@ -401,27 +391,17 @@ const TabIndexScreen: React.FC = () => {
                         text: 'Eliminar',
                         style: 'destructive',
                         onPress: async () => {
-                          // Primero eliminar habilidades asociadas
+                          // Primero eliminar habilidades asociadas por nombre del personaje
                           try {
-                            const resHabilidades = await fetch(API_BASE_HABILIDADES);
-                            if (resHabilidades.ok) {
-                              const habilidades = await resHabilidades.json();
-                              const habilidadesDelPersonaje = habilidades.filter((h: any) => 
-                                h.personaje?.toLowerCase() === personajeEncontrado.nombre.toLowerCase()
-                              );
-                              
-                              for (const hab of habilidadesDelPersonaje) {
-                                await fetch(`${API_BASE_HABILIDADES}/${hab._id || hab.id}`, {
-                                  method: 'DELETE'
-                                });
-                              }
-                            }
+                            await fetch(`${API_BASE_HABILIDADES}/${encodeURIComponent(personajeEncontrado.nombre)}`, {
+                              method: 'DELETE'
+                            });
                           } catch (e) {
                             console.log('Error eliminando habilidades:', e);
                           }
                           
-                          // Luego eliminar el personaje
-                          const deleteRes = await fetch(`${API_BASE_PERSONAJES}/${personajeEncontrado._id || personajeEncontrado.id}`, {
+                          // Luego eliminar el personaje por nombre
+                          const deleteRes = await fetch(`${API_BASE_PERSONAJES}/${encodeURIComponent(personajeEncontrado.nombre)}`, {
                             method: 'DELETE'
                           });
                           
@@ -735,9 +715,8 @@ const TabIndexScreen: React.FC = () => {
                           <Button title="Actualizar Personaje" color="#4CAF50" onPress={async () => {
                             try {
                               const API_BASE = personajeEdit.fuente === 'MongoDB' ? APIS[0].personajes : APIS[1].personajes;
-                              const personajeId = personajeEdit._id || personajeEdit.id;
                               
-                              const res = await fetch(`${API_BASE}/${personajeId}`, {
+                              const res = await fetch(`${API_BASE}/${encodeURIComponent(personajeEdit.nombre)}`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -815,9 +794,8 @@ const TabIndexScreen: React.FC = () => {
                                         const API_BASE_HABILIDADES = personajeEdit.fuente === 'MongoDB' 
                                           ? APIS[0].habilidades 
                                           : APIS[1].habilidades;
-                                        const habilidadId = habilidad._id || habilidad.id;
                                         
-                                        const res = await fetch(`${API_BASE_HABILIDADES}/${habilidadId}`, {
+                                        const res = await fetch(`${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`, {
                                           method: 'DELETE'
                                         });
                                         
@@ -845,10 +823,9 @@ const TabIndexScreen: React.FC = () => {
                                       ? APIS[0].habilidades 
                                       : APIS[1].habilidades;
                                     
-                                    // Actualizar cada habilidad
+                                    // Actualizar cada habilidad por nombre
                                     for (const habilidad of habilidadesEdit) {
-                                      const habilidadId = habilidad._id || habilidad.id;
-                                      await fetch(`${API_BASE_HABILIDADES}/${habilidadId}`, {
+                                      await fetch(`${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`, {
                                         method: 'PUT',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
