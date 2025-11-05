@@ -118,10 +118,20 @@ const TabIndexScreen: React.FC = () => {
 
   // Helper para agregar token a las peticiones
   const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-    const headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`
+    if (!token) {
+      throw new Error('No hay token de autenticación');
+    }
+    
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+      ...(options.headers as Record<string, string> || {})
     };
+    
+    // Si hay body y no se especificó Content-Type, agregarlo
+    if (options.body && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
     return fetch(url, { ...options, headers });
   };
 
@@ -431,7 +441,7 @@ const TabIndexScreen: React.FC = () => {
                       const urlDeleteHabilidades = `${API_BASE_HABILIDADES}/${encodeURIComponent(personajeEncontrado.nombre)}`;
                       console.log('🗑️ Eliminando habilidades de:', personajeEncontrado.nombre, 'URL:', urlDeleteHabilidades);
                       
-                      const resHab = await fetch(urlDeleteHabilidades, {
+                      const resHab = await fetchWithAuth(urlDeleteHabilidades, {
                         method: 'DELETE'
                       });
                       
@@ -446,7 +456,7 @@ const TabIndexScreen: React.FC = () => {
                     const urlDeletePersonaje = `${API_BASE_PERSONAJES}/${encodeURIComponent(personajeEncontrado.nombre)}`;
                     console.log('🗑️ Eliminando personaje:', personajeEncontrado.nombre, 'URL:', urlDeletePersonaje);
                     
-                    const deleteRes = await fetch(urlDeletePersonaje, {
+                    const deleteRes = await fetchWithAuth(urlDeletePersonaje, {
                       method: 'DELETE'
                     });
                     
@@ -476,7 +486,7 @@ const TabIndexScreen: React.FC = () => {
                             const urlDeleteHabilidades = `${API_BASE_HABILIDADES}/${encodeURIComponent(personajeEncontrado.nombre)}`;
                             console.log('🗑️ Eliminando habilidades de:', personajeEncontrado.nombre, 'URL:', urlDeleteHabilidades);
                             
-                            const resHab = await fetch(urlDeleteHabilidades, {
+                            const resHab = await fetchWithAuth(urlDeleteHabilidades, {
                               method: 'DELETE'
                             });
                             
@@ -491,7 +501,7 @@ const TabIndexScreen: React.FC = () => {
                           const urlDeletePersonaje = `${API_BASE_PERSONAJES}/${encodeURIComponent(personajeEncontrado.nombre)}`;
                           console.log('🗑️ Eliminando personaje:', personajeEncontrado.nombre, 'URL:', urlDeletePersonaje);
                           
-                          const deleteRes = await fetch(urlDeletePersonaje, {
+                          const deleteRes = await fetchWithAuth(urlDeletePersonaje, {
                             method: 'DELETE'
                           });
                           
@@ -823,7 +833,7 @@ const TabIndexScreen: React.FC = () => {
                                 url: urlUpdate
                               });
 
-                              const res = await fetch(urlUpdate, {
+                              const res = await fetchWithAuth(urlUpdate, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -909,7 +919,7 @@ const TabIndexScreen: React.FC = () => {
                                         const urlDelete = `${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`;
                                         console.log('🗑️ Eliminando habilidad:', habilidad.nombre, 'del personaje:', personajeEdit.nombre, 'URL:', urlDelete);
                                         
-                                        const res = await fetch(urlDelete, {
+                                        const res = await fetchWithAuth(urlDelete, {
                                           method: 'DELETE'
                                         });
                                         
@@ -953,7 +963,7 @@ const TabIndexScreen: React.FC = () => {
                                       const urlUpdate = `${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`;
                                       console.log('🔄 Actualizando habilidad:', habilidad.nombre, 'URL:', urlUpdate);
                                       
-                                      const res = await fetch(urlUpdate, {
+                                      const res = await fetchWithAuth(urlUpdate, {
                                         method: 'PUT',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
