@@ -775,6 +775,7 @@ const TabIndexScreen: React.FC = () => {
               ) : (
                 <View>
                   <Text style={{ fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 8 }}>Base de datos: {personajeEdit.fuente}</Text>
+                  {!isAdmin && <Text style={{ fontSize: 12, color: '#e74c3c', textAlign: 'center', marginBottom: 8, fontWeight: 'bold' }}>⚠️ Solo lectura - Rol: Usuario</Text>}
                   <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 12 }}>
                     <Button title="Datos del Personaje" onPress={() => setShowEditSection('personaje')} color="#2196F3" />
                     <View style={{ width: 10 }} />
@@ -784,34 +785,34 @@ const TabIndexScreen: React.FC = () => {
                     <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
                       {showEditSection === 'personaje' && (
                         <View>
-                          <Text style={{ fontSize: 12, color: '#999', marginBottom: 8, textAlign: 'center' }}>Campos editables del personaje</Text>
+                          <Text style={{ fontSize: 12, color: '#999', marginBottom: 8, textAlign: 'center' }}>{isAdmin ? 'Campos editables del personaje' : 'Información del personaje (solo lectura)'}</Text>
                           <View style={{ marginBottom: 8 }}>
                             <Text style={styles.label}>Nombre:</Text>
-                            <TextInput value={personajeEdit.nombre || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, nombre: v }))} style={styles.input} />
+                            <TextInput value={personajeEdit.nombre || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, nombre: v }))} style={styles.input} editable={isAdmin} />
                           </View>
                           <View style={{ marginBottom: 8 }}>
                             <Text style={styles.label}>Edad:</Text>
-                            <TextInput value={String(personajeEdit.edad || '')} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, edad: v }))} style={styles.input} keyboardType="numeric" />
+                            <TextInput value={String(personajeEdit.edad || '')} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, edad: v }))} style={styles.input} keyboardType="numeric" editable={isAdmin} />
                           </View>
                           <View style={{ marginBottom: 8 }}>
                             <Text style={styles.label}>Altura (cm):</Text>
-                            <TextInput value={String(personajeEdit.altura || '')} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, altura: v }))} style={styles.input} keyboardType="numeric" />
+                            <TextInput value={String(personajeEdit.altura || '')} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, altura: v }))} style={styles.input} keyboardType="numeric" editable={isAdmin} />
                           </View>
                           <View style={{ marginBottom: 8 }}>
                             <Text style={styles.label}>Peso (kg):</Text>
-                            <TextInput value={String(personajeEdit.peso || '')} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, peso: v }))} style={styles.input} keyboardType="numeric" />
+                            <TextInput value={String(personajeEdit.peso || '')} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, peso: v }))} style={styles.input} keyboardType="numeric" editable={isAdmin} />
                           </View>
                           <View style={{ marginBottom: 8 }}>
                             <Text style={styles.label}>Género:</Text>
-                            <TextInput value={personajeEdit.genero || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, genero: v }))} style={styles.input} />
+                            <TextInput value={personajeEdit.genero || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, genero: v }))} style={styles.input} editable={isAdmin} />
                           </View>
                           <View style={{ marginBottom: 8 }}>
                             <Text style={styles.label}>Origen:</Text>
-                            <TextInput value={personajeEdit.origen || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, origen: v }))} style={styles.input} />
+                            <TextInput value={personajeEdit.origen || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, origen: v }))} style={styles.input} editable={isAdmin} />
                           </View>
                           <View style={{ marginBottom: 8 }}>
                             <Text style={styles.label}>Habilidad Principal:</Text>
-                            <TextInput value={personajeEdit.habilidad || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, habilidad: v }))} style={styles.input} />
+                            <TextInput value={personajeEdit.habilidad || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, habilidad: v }))} style={styles.input} editable={isAdmin} />
                           </View>
                           <View style={{ marginBottom: 8 }}>
                             <Text style={styles.label}>Descripción:</Text>
@@ -821,13 +822,22 @@ const TabIndexScreen: React.FC = () => {
                               style={[styles.input, { minHeight: 60 }]} 
                               multiline 
                               numberOfLines={3}
+                              editable={isAdmin}
                             />
                           </View>
                           <View style={{ marginBottom: 8 }}>
                             <Text style={styles.label}>URL Imagen:</Text>
-                            <TextInput value={personajeEdit.urlImagen || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, urlImagen: v }))} style={styles.input} />
+                            <TextInput value={personajeEdit.urlImagen || ''} onChangeText={v => setPersonajeEdit((e: any) => ({ ...e, urlImagen: v }))} style={styles.input} editable={isAdmin} />
                           </View>
-                          <Button title="Actualizar Personaje" color="#4CAF50" onPress={async () => {
+                          <Button 
+                            title={isAdmin ? "Actualizar Personaje" : "Solo Lectura - Requiere Admin"} 
+                            color={isAdmin ? "#4CAF50" : "#999"} 
+                            disabled={!isAdmin}
+                            onPress={async () => {
+                            if (!isAdmin) {
+                              Alert.alert('⚠️ Permiso Denegado', 'Solo los administradores pueden actualizar personajes');
+                              return;
+                            }
                             try {
                               if (!personajeEdit.nombre || !personajeEdit.nombre.trim()) {
                                 Alert.alert('Error', 'El nombre del personaje es requerido');
@@ -888,6 +898,7 @@ const TabIndexScreen: React.FC = () => {
                                     style={styles.input}
                                     value={habilidad.nombre || ''}
                                     placeholder="Nombre de la habilidad"
+                                    editable={isAdmin}
                                     onChangeText={v => {
                                       const nuevas = [...habilidadesEdit];
                                       nuevas[idx] = { ...nuevas[idx], nombre: v };
@@ -899,6 +910,7 @@ const TabIndexScreen: React.FC = () => {
                                     style={styles.input}
                                     value={habilidad.tipo || ''}
                                     placeholder="Tipo"
+                                    editable={isAdmin}
                                     onChangeText={v => {
                                       const nuevas = [...habilidadesEdit];
                                       nuevas[idx] = { ...nuevas[idx], tipo: v };
@@ -911,13 +923,14 @@ const TabIndexScreen: React.FC = () => {
                                     value={habilidad.descripcion || ''}
                                     placeholder="Descripción"
                                     multiline
+                                    editable={isAdmin}
                                     onChangeText={v => {
                                       const nuevas = [...habilidadesEdit];
                                       nuevas[idx] = { ...nuevas[idx], descripcion: v };
                                       setHabilidadesEdit(nuevas);
                                     }}
                                   />
-                                  <Button 
+                                  {isAdmin && (<Button 
                                     title="Eliminar esta habilidad" 
                                     color="#e74c3c" 
                                     onPress={async () => {
@@ -948,10 +961,10 @@ const TabIndexScreen: React.FC = () => {
                                         Alert.alert('❌ Error de conexión', `No se pudo conectar al servidor\nDetalle: ${error}`);
                                       }
                                     }}
-                                  />
+                                  />)}
                                 </View>
                               ))}
-                              <Button 
+                              {isAdmin && (<Button 
                                 title="Actualizar Habilidades" 
                                 color="#4CAF50" 
                                 onPress={async () => {
@@ -1003,7 +1016,7 @@ const TabIndexScreen: React.FC = () => {
                                     Alert.alert('❌ Error', `No se pudo actualizar las habilidades\nDetalle: ${error}`);
                                   }
                                 }}
-                              />
+                              />)}
                             </>
                           )}
                         </View>
