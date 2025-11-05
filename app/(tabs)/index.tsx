@@ -230,6 +230,7 @@ const TabIndexScreen: React.FC = () => {
     try {
       const API_BASE_PERSONAJES = APIS[apiSeleccionada].personajes;
       const API_BASE_HABILIDADES = APIS[apiSeleccionada].habilidades;
+      const fuenteNombre = APIS[apiSeleccionada].nombre;
       
       // Preparar datos del personaje
       const personajeData = {
@@ -240,6 +241,8 @@ const TabIndexScreen: React.FC = () => {
         peso: formPersonaje.peso ? parseInt(formPersonaje.peso) : undefined,
       };
       
+      console.log('➕ Insertando personaje:', formPersonaje.nombre, 'en', fuenteNombre);
+      
       // Insertar personaje
       const resPersonaje = await fetch(API_BASE_PERSONAJES, {
         method: 'POST',
@@ -248,6 +251,9 @@ const TabIndexScreen: React.FC = () => {
       });
       
       if (resPersonaje.ok) {
+        let habilidadesExitosas = 0;
+        let habilidadesError = 0;
+        
         // Si hay habilidades, insertarlas
         if (formHabilidades.length > 0) {
           for (const habilidad of formHabilidades) {
@@ -256,15 +262,30 @@ const TabIndexScreen: React.FC = () => {
               personaje: formPersonaje.nombre // Asociar con el personaje
             };
             
-            await fetch(API_BASE_HABILIDADES, {
+            console.log('➕ Insertando habilidad:', habilidad.nombre, 'para', formPersonaje.nombre);
+            
+            const resHabilidad = await fetch(API_BASE_HABILIDADES, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(habilidadData)
             });
+            
+            if (resHabilidad.ok) {
+              habilidadesExitosas++;
+            } else {
+              habilidadesError++;
+              const errorText = await resHabilidad.text().catch(() => 'Error desconocido');
+              console.error('❌ Error insertando habilidad:', habilidad.nombre, resHabilidad.status, errorText);
+            }
           }
         }
         
-        Alert.alert('Insertado', 'Personaje y habilidades insertados correctamente');
+        if (habilidadesError === 0) {
+          Alert.alert('✅ Insertado', `Personaje y ${habilidadesExitosas} habilidad(es) insertados correctamente en ${fuenteNombre}`);
+        } else {
+          Alert.alert('⚠️ Parcialmente insertado', `Personaje insertado, pero ${habilidadesError} habilidad(es) fallaron. Revisa la consola.`);
+        }
+        
         setModalVisible(false);
         
         // Limpiar formularios
@@ -275,11 +296,13 @@ const TabIndexScreen: React.FC = () => {
         setFormHabilidades([]);
         setImage(null);
       } else {
-        Alert.alert('Error', 'No se pudo insertar el personaje');
+        const errorText = await resPersonaje.text().catch(() => 'Error desconocido');
+        console.error('❌ Error insertando personaje:', resPersonaje.status, errorText);
+        Alert.alert('❌ Error', `No se pudo insertar el personaje\nEstado: ${resPersonaje.status}\nDetalle: ${errorText}`);
       }
     } catch (error) {
-      console.error('Error insertando:', error);
-      Alert.alert('Error', 'No se pudo conectar al servidor.');
+      console.error('❌ Error de conexión:', error);
+      Alert.alert('❌ Error de conexión', `No se pudo conectar al servidor\nDetalle: ${error}`);
     }
   };
 
@@ -360,25 +383,37 @@ const TabIndexScreen: React.FC = () => {
                   if (window.confirm(`¿Eliminar a ${personajeEncontrado.nombre} y todas sus habilidades de ${fuenteEncontrada}?`)) {
                     // Primero eliminar habilidades asociadas por nombre del personaje
                     try {
-                      await fetch(`${API_BASE_HABILIDADES}/${encodeURIComponent(personajeEncontrado.nombre)}`, {
+                      const urlDeleteHabilidades = `${API_BASE_HABILIDADES}/${encodeURIComponent(personajeEncontrado.nombre)}`;
+                      console.log('🗑️ Eliminando habilidades de:', personajeEncontrado.nombre, 'URL:', urlDeleteHabilidades);
+                      
+                      const resHab = await fetch(urlDeleteHabilidades, {
                         method: 'DELETE'
                       });
+                      
+                      if (!resHab.ok) {
+                        console.warn('⚠️ No se pudieron eliminar las habilidades (esto es normal si no tiene):', resHab.status);
+                      }
                     } catch (e) {
                       console.log('Error eliminando habilidades:', e);
                     }
                     
                     // Luego eliminar el personaje por nombre
-                    const deleteRes = await fetch(`${API_BASE_PERSONAJES}/${encodeURIComponent(personajeEncontrado.nombre)}`, {
+                    const urlDeletePersonaje = `${API_BASE_PERSONAJES}/${encodeURIComponent(personajeEncontrado.nombre)}`;
+                    console.log('🗑️ Eliminando personaje:', personajeEncontrado.nombre, 'URL:', urlDeletePersonaje);
+                    
+                    const deleteRes = await fetch(urlDeletePersonaje, {
                       method: 'DELETE'
                     });
                     
                     if (deleteRes.ok) {
-                      window.alert('Personaje y sus habilidades eliminados correctamente');
+                      window.alert('✅ Personaje y sus habilidades eliminados correctamente');
                       setPersonaje(null);
                       setImagen(null);
                       setNombre('');
                     } else {
-                      window.alert('Error al eliminar el personaje');
+                      const errorText = await deleteRes.text().catch(() => 'Error desconocido');
+                      console.error('❌ Error al eliminar:', deleteRes.status, errorText);
+                      window.alert(`❌ Error al eliminar el personaje\nEstado: ${deleteRes.status}\nURL: ${urlDeletePersonaje}\nDetalle: ${errorText}`);
                     }
                   }
                 } else {
@@ -393,25 +428,37 @@ const TabIndexScreen: React.FC = () => {
                         onPress: async () => {
                           // Primero eliminar habilidades asociadas por nombre del personaje
                           try {
-                            await fetch(`${API_BASE_HABILIDADES}/${encodeURIComponent(personajeEncontrado.nombre)}`, {
+                            const urlDeleteHabilidades = `${API_BASE_HABILIDADES}/${encodeURIComponent(personajeEncontrado.nombre)}`;
+                            console.log('🗑️ Eliminando habilidades de:', personajeEncontrado.nombre, 'URL:', urlDeleteHabilidades);
+                            
+                            const resHab = await fetch(urlDeleteHabilidades, {
                               method: 'DELETE'
                             });
+                            
+                            if (!resHab.ok) {
+                              console.warn('⚠️ No se pudieron eliminar las habilidades (esto es normal si no tiene):', resHab.status);
+                            }
                           } catch (e) {
                             console.log('Error eliminando habilidades:', e);
                           }
                           
                           // Luego eliminar el personaje por nombre
-                          const deleteRes = await fetch(`${API_BASE_PERSONAJES}/${encodeURIComponent(personajeEncontrado.nombre)}`, {
+                          const urlDeletePersonaje = `${API_BASE_PERSONAJES}/${encodeURIComponent(personajeEncontrado.nombre)}`;
+                          console.log('🗑️ Eliminando personaje:', personajeEncontrado.nombre, 'URL:', urlDeletePersonaje);
+                          
+                          const deleteRes = await fetch(urlDeletePersonaje, {
                             method: 'DELETE'
                           });
                           
                           if (deleteRes.ok) {
-                            Alert.alert('Eliminado', 'Personaje y sus habilidades eliminados correctamente');
+                            Alert.alert('✅ Eliminado', 'Personaje y sus habilidades eliminados correctamente');
                             setPersonaje(null);
                             setImagen(null);
                             setNombre('');
                           } else {
-                            Alert.alert('Error', 'No se pudo eliminar el personaje');
+                            const errorText = await deleteRes.text().catch(() => 'Error desconocido');
+                            console.error('❌ Error al eliminar:', deleteRes.status, errorText);
+                            Alert.alert('❌ Error', `No se pudo eliminar el personaje\nEstado: ${deleteRes.status}\nURL: ${urlDeletePersonaje}\nDetalle: ${errorText}`);
                           }
                         }
                       }
@@ -714,9 +761,21 @@ const TabIndexScreen: React.FC = () => {
                           </View>
                           <Button title="Actualizar Personaje" color="#4CAF50" onPress={async () => {
                             try {
+                              if (!personajeEdit.nombre || !personajeEdit.nombre.trim()) {
+                                Alert.alert('Error', 'El nombre del personaje es requerido');
+                                return;
+                              }
+
                               const API_BASE = personajeEdit.fuente === 'MongoDB' ? APIS[0].personajes : APIS[1].personajes;
+                              const urlUpdate = `${API_BASE}/${encodeURIComponent(personajeEdit.nombre)}`;
                               
-                              const res = await fetch(`${API_BASE}/${encodeURIComponent(personajeEdit.nombre)}`, {
+                              console.log('🔄 Actualizando personaje:', {
+                                nombre: personajeEdit.nombre,
+                                fuente: personajeEdit.fuente,
+                                url: urlUpdate
+                              });
+
+                              const res = await fetch(urlUpdate, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -731,13 +790,17 @@ const TabIndexScreen: React.FC = () => {
                                   urlImagen: personajeEdit.urlImagen
                                 })
                               });
+                              
                               if (res.ok) {
-                                Alert.alert('Actualizado', 'Personaje actualizado correctamente');
+                                Alert.alert('✅ Actualizado', 'Personaje actualizado correctamente');
                               } else {
-                                Alert.alert('Error', 'No se pudo actualizar el personaje');
+                                const errorText = await res.text().catch(() => 'Error desconocido');
+                                console.error('❌ Error al actualizar:', res.status, errorText);
+                                Alert.alert('❌ Error', `No se pudo actualizar el personaje.\nEstado: ${res.status}\nURL: ${urlUpdate}\nDetalle: ${errorText}`);
                               }
-                            } catch {
-                              Alert.alert('Error', 'No se pudo conectar al servidor.');
+                            } catch (error) {
+                              console.error('❌ Error de conexión:', error);
+                              Alert.alert('❌ Error de conexión', `No se pudo conectar al servidor.\nDetalle: ${error}`);
                             }
                           }} />
                         </View>
@@ -795,20 +858,26 @@ const TabIndexScreen: React.FC = () => {
                                           ? APIS[0].habilidades 
                                           : APIS[1].habilidades;
                                         
-                                        const res = await fetch(`${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`, {
+                                        const urlDelete = `${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`;
+                                        console.log('🗑️ Eliminando habilidad:', habilidad.nombre, 'del personaje:', personajeEdit.nombre, 'URL:', urlDelete);
+                                        
+                                        const res = await fetch(urlDelete, {
                                           method: 'DELETE'
                                         });
                                         
                                         if (res.ok) {
-                                          Alert.alert('Eliminada', 'Habilidad eliminada correctamente');
+                                          Alert.alert('✅ Eliminada', 'Habilidad eliminada correctamente');
                                           // Actualizar la lista
                                           const nuevas = habilidadesEdit.filter((_, i) => i !== idx);
                                           setHabilidadesEdit(nuevas);
                                         } else {
-                                          Alert.alert('Error', 'No se pudo eliminar la habilidad');
+                                          const errorText = await res.text().catch(() => 'Error desconocido');
+                                          console.error('❌ Error al eliminar habilidad:', res.status, errorText);
+                                          Alert.alert('❌ Error', `No se pudo eliminar la habilidad\nEstado: ${res.status}\nURL: ${urlDelete}\nDetalle: ${errorText}`);
                                         }
-                                      } catch {
-                                        Alert.alert('Error', 'No se pudo conectar al servidor');
+                                      } catch (error) {
+                                        console.error('❌ Error de conexión:', error);
+                                        Alert.alert('❌ Error de conexión', `No se pudo conectar al servidor\nDetalle: ${error}`);
                                       }
                                     }}
                                   />
@@ -823,9 +892,20 @@ const TabIndexScreen: React.FC = () => {
                                       ? APIS[0].habilidades 
                                       : APIS[1].habilidades;
                                     
+                                    let errores = 0;
+                                    let exitosos = 0;
+                                    
                                     // Actualizar cada habilidad por nombre
                                     for (const habilidad of habilidadesEdit) {
-                                      await fetch(`${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`, {
+                                      if (!habilidad.nombre || !habilidad.nombre.trim()) {
+                                        console.warn('⚠️ Saltando habilidad sin nombre');
+                                        continue;
+                                      }
+                                      
+                                      const urlUpdate = `${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`;
+                                      console.log('🔄 Actualizando habilidad:', habilidad.nombre, 'URL:', urlUpdate);
+                                      
+                                      const res = await fetch(urlUpdate, {
                                         method: 'PUT',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
@@ -835,11 +915,24 @@ const TabIndexScreen: React.FC = () => {
                                           personaje: habilidad.personaje
                                         })
                                       });
+                                      
+                                      if (res.ok) {
+                                        exitosos++;
+                                      } else {
+                                        errores++;
+                                        const errorText = await res.text().catch(() => 'Error desconocido');
+                                        console.error('❌ Error actualizando habilidad:', habilidad.nombre, res.status, errorText);
+                                      }
                                     }
                                     
-                                    Alert.alert('Actualizado', 'Habilidades actualizadas correctamente');
-                                  } catch {
-                                    Alert.alert('Error', 'No se pudo actualizar las habilidades');
+                                    if (errores === 0) {
+                                      Alert.alert('✅ Actualizado', `${exitosos} habilidad(es) actualizadas correctamente`);
+                                    } else {
+                                      Alert.alert('⚠️ Parcialmente actualizado', `${exitosos} exitosas, ${errores} con errores. Revisa la consola para detalles.`);
+                                    }
+                                  } catch (error) {
+                                    console.error('❌ Error de conexión:', error);
+                                    Alert.alert('❌ Error', `No se pudo actualizar las habilidades\nDetalle: ${error}`);
                                   }
                                 }}
                               />
