@@ -3,9 +3,9 @@ const router = express.Router();
 const controller = require('../../controllers/habilidad/habilidadController');
 const { verificarAuth, verificarAdmin } = require('../../middleware/authMiddleware');
 
-// Rutas públicas (lectura) - requieren autenticación pero cualquier rol
-router.get('/', verificarAuth, controller.listarTodas);
-router.get('/:nombre', verificarAuth, controller.obtenerPorPersonaje);
+// Rutas públicas (lectura) - acceso sin autenticación
+router.get('/', controller.listarTodas);
+router.get('/:nombre', controller.obtenerPorPersonaje);
 
 // Rutas protegidas (escritura) - solo admin
 router.post('/', verificarAuth, verificarAdmin, controller.crear);

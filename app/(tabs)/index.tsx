@@ -81,12 +81,12 @@ const TabIndexScreen: React.FC = () => {
 
   // useEffect para habilidadesEdit - cargar habilidades del personaje
   React.useEffect(() => {
-    if (personajeEdit && personajeEdit.nombre && personajeEdit.fuente && token) {
+    if (personajeEdit && personajeEdit.nombre && personajeEdit.fuente) {
       const API_HABILIDADES = personajeEdit.fuente === 'MongoDB' 
         ? APIS[0].habilidades 
         : APIS[1].habilidades;
       
-      fetchWithAuth(API_HABILIDADES)
+      fetch(API_HABILIDADES)
         .then(res => res.ok ? res.json() : [])
         .then(data => {
           // Filtrar habilidades que pertenecen a este personaje
@@ -99,7 +99,7 @@ const TabIndexScreen: React.FC = () => {
     } else {
       setHabilidadesEdit([]);
     }
-  }, [personajeEdit, token]);
+  }, [personajeEdit]);
 
   const [nombre, setNombre] = useState('');
   const { personaje, setPersonaje } = usePersonaje();
@@ -408,7 +408,7 @@ const TabIndexScreen: React.FC = () => {
               
               // Buscar en MongoDB
               try {
-                const resMongo = await fetchWithAuth(APIS[0].personajes);
+                const resMongo = await fetch(APIS[0].personajes);
                 if (resMongo.ok) {
                   const personajesMongo = await resMongo.json();
                   const found = personajesMongo.find((p: any) => p.nombre.toLowerCase() === nombre.toLowerCase());
@@ -426,7 +426,7 @@ const TabIndexScreen: React.FC = () => {
               // Si no se encontró en MongoDB, buscar en MySQL
               if (!personajeEncontrado) {
                 try {
-                  const resMySQL = await fetchWithAuth(APIS[1].personajes);
+                  const resMySQL = await fetch(APIS[1].personajes);
                   if (resMySQL.ok) {
                     const personajesMySQL = await resMySQL.json();
                     const found = personajesMySQL.find((p: any) => p.nombre.toLowerCase() === nombre.toLowerCase());
@@ -561,7 +561,7 @@ const TabIndexScreen: React.FC = () => {
               
               // Obtener de MySQL
               try {
-                const resMySQL = await fetchWithAuth(APIS[1].personajes);
+                const resMySQL = await fetch(APIS[1].personajes);
                 if (resMySQL.ok) {
                   const personajesMySQL = await resMySQL.json();
                   todosLosPersonajes = [...todosLosPersonajes, ...personajesMySQL.map((p: any) => ({ ...p, fuente: 'MySQL' }))];
