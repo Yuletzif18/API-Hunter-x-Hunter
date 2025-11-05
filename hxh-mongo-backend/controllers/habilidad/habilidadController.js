@@ -57,6 +57,29 @@ exports.modificar = async (req, res) => {
   }
 };
 
+// Modificar una habilidad específica por nombre y personaje
+exports.modificarHabilidadEspecifica = async (req, res) => {
+  try {
+    const Habilidad = req.db.model('Habilidad');
+    const { nombreHabilidad, nombrePersonaje } = req.params;
+    
+    const habilidad = await Habilidad.findOneAndUpdate(
+      { nombre: nombreHabilidad, personaje: nombrePersonaje },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    
+    if (!habilidad) {
+      return res.status(404).json({ error: 'Habilidad no encontrada' });
+    }
+    
+    res.json(habilidad);
+  } catch (error) {
+    console.error('Error al modificar habilidad:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.eliminar = async (req, res) => {
   try {
     const Habilidad = req.db.model('Habilidad');
@@ -67,6 +90,31 @@ exports.eliminar = async (req, res) => {
     res.json({ 
       mensaje: 'Habilidades eliminadas', 
       cantidad: result.deletedCount 
+    });
+  } catch (error) {
+    console.error('Error al eliminar habilidad:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Eliminar una habilidad específica por nombre y personaje
+exports.eliminarHabilidadEspecifica = async (req, res) => {
+  try {
+    const Habilidad = req.db.model('Habilidad');
+    const { nombreHabilidad, nombrePersonaje } = req.params;
+    
+    const habilidad = await Habilidad.findOneAndDelete({
+      nombre: nombreHabilidad,
+      personaje: nombrePersonaje
+    });
+    
+    if (!habilidad) {
+      return res.status(404).json({ error: 'Habilidad no encontrada' });
+    }
+    
+    res.json({ 
+      mensaje: 'Habilidad eliminada',
+      habilidad
     });
   } catch (error) {
     console.error('Error al eliminar habilidad:', error);
