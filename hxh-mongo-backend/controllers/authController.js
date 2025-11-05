@@ -1,4 +1,3 @@
-const Usuario = require('../models/Usuario');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -9,6 +8,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'hunter-x-hunter-secret-2025';
 exports.registrar = async (req, res) => {
   try {
     const { username, password, rol } = req.body;
+    
+    // Obtener modelo de la conexión correcta
+    const Usuario = req.db.model('Usuario');
 
     // Validar campos requeridos
     if (!username || !password) {
@@ -52,6 +54,9 @@ exports.registrar = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
+
+    // Obtener modelo de la conexión correcta
+    const Usuario = req.db.model('Usuario');
 
     // Validar campos requeridos
     if (!username || !password) {
@@ -101,6 +106,9 @@ exports.verificarToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
 
+    // Obtener modelo de la conexión correcta
+    const Usuario = req.db.model('Usuario');
+
     if (!token) {
       return res.status(401).json({ error: 'Token no proporcionado' });
     }
@@ -130,6 +138,9 @@ exports.verificarToken = async (req, res) => {
 // Listar todos los usuarios (solo admin)
 exports.listarUsuarios = async (req, res) => {
   try {
+    // Obtener modelo de la conexión correcta
+    const Usuario = req.db.model('Usuario');
+    
     const usuarios = await Usuario.find().select('-password');
     res.json(usuarios);
   } catch (error) {
