@@ -1,6 +1,6 @@
+import { useAuth } from '@/components/AuthContext';
 import { useImagen } from '@/components/ImagenContext';
 import { usePersonaje } from '@/components/PersonajeContext';
-import { useAuth } from '@/components/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useRef, useState } from 'react';
 import { Alert, Button, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';

@@ -1,13 +1,13 @@
 
 
+import { AuthProvider, useAuth } from '@/components/AuthContext';
 import { ImagenProvider } from '@/components/ImagenContext';
 import { PersonajeProvider } from '@/components/PersonajeContext';
-import { AuthProvider, useAuth } from '@/components/AuthContext';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ActivityIndicator, View } from 'react-native';
 
 function RootLayoutNav() {
   const { isAuthenticated, loading } = useAuth();

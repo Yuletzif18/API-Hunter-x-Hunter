@@ -1,8 +1,8 @@
+import { useAuth } from '@/components/AuthContext';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
-import { TouchableOpacity, Text, View, Alert, Platform } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useAuth } from '@/components/AuthContext';
+import { Alert, Platform, Text, TouchableOpacity, View } from 'react-native';
 
 
 export default function TabLayout() {
