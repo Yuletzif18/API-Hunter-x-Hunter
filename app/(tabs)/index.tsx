@@ -1,5 +1,6 @@
 import { useImagen } from '@/components/ImagenContext';
 import { usePersonaje } from '@/components/PersonajeContext';
+import { useAuth } from '@/components/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useRef, useState } from 'react';
 import { Alert, Button, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -21,6 +22,7 @@ const APIS = [
 ];
 
 const TabIndexScreen: React.FC = () => {
+  const { isAdmin, token } = useAuth();
   const [showEditSection, setShowEditSection] = useState<'personaje' | 'habilidad'>('personaje');
 
   // --- lógica de gestos ---
@@ -114,6 +116,15 @@ const TabIndexScreen: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [image, setImage] = useState<string | null>(null);
 
+  // Helper para agregar token a las peticiones
+  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`
+    };
+    return fetch(url, { ...options, headers });
+  };
+
   const pickImage = async () => {
     try {
       let result = await ImagePicker.launchImageLibraryAsync({
@@ -146,7 +157,7 @@ const TabIndexScreen: React.FC = () => {
       
       // Intentar MongoDB primero
       try {
-        const resMongo = await fetch(APIS[0].personajes);
+        const resMongo = await fetchWithAuth(APIS[0].personajes);
         if (resMongo.ok) {
           const itemsMongo = await resMongo.json();
           const foundMongo = itemsMongo.find((i: any) => i.nombre.toLowerCase() === nombre.toLowerCase());
@@ -162,7 +173,7 @@ const TabIndexScreen: React.FC = () => {
       // Si no se encontró en MongoDB, buscar en MySQL
       if (!personajeEncontrado) {
         try {
-          const resMySQL = await fetch(APIS[1].personajes);
+          const resMySQL = await fetchWithAuth(APIS[1].personajes);
           if (resMySQL.ok) {
             const itemsMySQL = await resMySQL.json();
             const foundMySQL = itemsMySQL.find((i: any) => i.nombre.toLowerCase() === nombre.toLowerCase());
@@ -244,7 +255,7 @@ const TabIndexScreen: React.FC = () => {
       console.log('➕ Insertando personaje:', formPersonaje.nombre, 'en', fuenteNombre);
       
       // Insertar personaje
-      const resPersonaje = await fetch(API_BASE_PERSONAJES, {
+      const resPersonaje = await fetchWithAuth(API_BASE_PERSONAJES, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(personajeData)
@@ -264,7 +275,7 @@ const TabIndexScreen: React.FC = () => {
             
             console.log('➕ Insertando habilidad:', habilidad.nombre, 'para', formPersonaje.nombre);
             
-            const resHabilidad = await fetch(API_BASE_HABILIDADES, {
+            const resHabilidad = await fetchWithAuth(API_BASE_HABILIDADES, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(habilidadData)
@@ -311,6 +322,21 @@ const TabIndexScreen: React.FC = () => {
       <View style={{ padding: 20, alignItems: 'center' }}>
         <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>Hunter x Hunter - Personajes</Text>
         <Text style={{ fontSize: 12, color: '#666', textAlign: 'center' }}>El sistema busca automáticamente en MongoDB y MySQL</Text>
+        
+        {!isAdmin && (
+          <View style={{ 
+            marginTop: 12, 
+            padding: 10, 
+            backgroundColor: '#fff3cd', 
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: '#ffc107'
+          }}>
+            <Text style={{ fontSize: 12, color: '#856404', textAlign: 'center' }}>
+              ⚠️ Modo Usuario: Solo puedes consultar personajes. El CRUD está deshabilitado.
+            </Text>
+          </View>
+        )}
       </View>
       
       <TextInput
@@ -325,10 +351,29 @@ const TabIndexScreen: React.FC = () => {
           <Button title="Consultar" onPress={consultarPersonaje} />
         </View>
         <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
-          <Button title="Insertar Personaje" onPress={() => setModalVisible(true)} color="#4CAF50" />
+          <Button 
+            title="Insertar Personaje" 
+            onPress={() => {
+              if (!isAdmin) {
+                Alert.alert('⚠️ Permiso Denegado', 'Solo los administradores pueden insertar personajes');
+                return;
+              }
+              setModalVisible(true);
+            }} 
+            color={isAdmin ? "#4CAF50" : "#999"} 
+            disabled={!isAdmin}
+          />
         </View>
         <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
-          <Button title="Eliminar Personaje" color="#e74c3c" onPress={async () => {
+          <Button 
+            title="Eliminar Personaje" 
+            color={isAdmin ? "#e74c3c" : "#999"} 
+            disabled={!isAdmin}
+            onPress={async () => {
+            if (!isAdmin) {
+              Alert.alert('⚠️ Permiso Denegado', 'Solo los administradores pueden eliminar personajes');
+              return;
+            }
             if (!nombre.trim()) {
               Alert.alert('Aviso', 'Ingresa el nombre del personaje a eliminar');
               return;
@@ -475,14 +520,17 @@ const TabIndexScreen: React.FC = () => {
           }} />
         </View>
         <View style={{ flexBasis: '45%', minWidth: 120, margin: 4 }}>
-          <Button title="Listar/Modificar Personajes" color="#2980b9" onPress={async () => {
+          <Button 
+            title={isAdmin ? "Listar/Modificar Personajes" : "Listar Personajes"} 
+            color={isAdmin ? "#2980b9" : "#17a2b8"} 
+            onPress={async () => {
             try {
               // Obtener personajes de AMBAS bases de datos
               let todosLosPersonajes: any[] = [];
               
               // Obtener de MongoDB
               try {
-                const resMongo = await fetch(APIS[0].personajes);
+                const resMongo = await fetchWithAuth(APIS[0].personajes);
                 if (resMongo.ok) {
                   const personajesMongo = await resMongo.json();
                   todosLosPersonajes = [...todosLosPersonajes, ...personajesMongo.map((p: any) => ({ ...p, fuente: 'MongoDB' }))];
