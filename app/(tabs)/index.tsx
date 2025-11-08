@@ -445,7 +445,7 @@ const TabIndexScreen: React.FC = () => {
               if (personajeEncontrado) {
                 // Confirmar eliminación
                 if (Platform.OS === 'web') {
-                  if (window.confirm(`¿Eliminar a ${personajeEncontrado.nombre} y todas sus habilidades de ${fuenteEncontrada}?`)) {
+                  if (window.confirm(`¿Eliminar a "${personajeEncontrado.nombre}" y todas sus habilidades de ${fuenteEncontrada}?\n\n⚠️ Esta acción no se puede deshacer.`)) {
                     // Primero eliminar habilidades asociadas por nombre del personaje
                     try {
                       const urlDeleteHabilidades = `${API_BASE_HABILIDADES}/${encodeURIComponent(personajeEncontrado.nombre)}`;
@@ -483,8 +483,8 @@ const TabIndexScreen: React.FC = () => {
                   }
                 } else {
                   Alert.alert(
-                    'Confirmar Eliminación',
-                    `¿Eliminar a ${personajeEncontrado.nombre} y todas sus habilidades de ${fuenteEncontrada}?`,
+                    '🗑️ Confirmar Eliminación',
+                    `¿Eliminar a "${personajeEncontrado.nombre}" y todas sus habilidades de ${fuenteEncontrada}?\n\n⚠️ Esta acción no se puede deshacer.`,
                     [
                       { text: 'Cancelar', style: 'cancel' },
                       {
@@ -844,37 +844,68 @@ const TabIndexScreen: React.FC = () => {
                                 return;
                               }
 
-                              const API_BASE = personajeEdit.fuente === 'MongoDB' ? APIS[0].personajes : APIS[1].personajes;
-                              const urlUpdate = `${API_BASE}/${encodeURIComponent(personajeEdit.nombre)}`;
-                              
-                              console.log('🔄 Actualizando personaje:', {
-                                nombre: personajeEdit.nombre,
-                                fuente: personajeEdit.fuente,
-                                url: urlUpdate
-                              });
-
-                              const res = await fetchWithAuth(urlUpdate, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  nombre: personajeEdit.nombre,
-                                  edad: personajeEdit.edad,
-                                  altura: personajeEdit.altura,
-                                  peso: personajeEdit.peso,
-                                  genero: personajeEdit.genero,
-                                  origen: personajeEdit.origen,
-                                  habilidad: personajeEdit.habilidad,
-                                  descripcion: personajeEdit.descripcion,
-                                  urlImagen: personajeEdit.urlImagen
-                                })
-                              });
-                              
-                              if (res.ok) {
-                                Alert.alert('✅ Actualizado', 'Personaje actualizado correctamente');
+                              // Pop-up de confirmación
+                              if (Platform.OS === 'web') {
+                                if (!window.confirm(`¿Confirmas actualizar a ${personajeEdit.nombre} en ${personajeEdit.fuente}?`)) {
+                                  return;
+                                }
                               } else {
-                                const errorText = await res.text().catch(() => 'Error desconocido');
-                                console.error('❌ Error al actualizar:', res.status, errorText);
-                                Alert.alert('❌ Error', `No se pudo actualizar el personaje.\nEstado: ${res.status}\nURL: ${urlUpdate}\nDetalle: ${errorText}`);
+                                Alert.alert(
+                                  '🔄 Confirmar Actualización',
+                                  `¿Deseas actualizar los datos de ${personajeEdit.nombre} en ${personajeEdit.fuente}?`,
+                                  [
+                                    { text: 'Cancelar', style: 'cancel' },
+                                    {
+                                      text: 'Actualizar',
+                                      style: 'default',
+                                      onPress: async () => {
+                                        await actualizarPersonaje();
+                                      }
+                                    }
+                                  ]
+                                );
+                                return; // Salir aquí para mobile, la actualización se hace en el callback
+                              }
+
+                              // Función para actualizar (se ejecuta directamente en web, o en callback de Alert en mobile)
+                              const actualizarPersonaje = async () => {
+                                const API_BASE = personajeEdit.fuente === 'MongoDB' ? APIS[0].personajes : APIS[1].personajes;
+                                const urlUpdate = `${API_BASE}/${encodeURIComponent(personajeEdit.nombre)}`;
+                                
+                                console.log('🔄 Actualizando personaje:', {
+                                  nombre: personajeEdit.nombre,
+                                  fuente: personajeEdit.fuente,
+                                  url: urlUpdate
+                                });
+
+                                const res = await fetchWithAuth(urlUpdate, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    nombre: personajeEdit.nombre,
+                                    edad: personajeEdit.edad,
+                                    altura: personajeEdit.altura,
+                                    peso: personajeEdit.peso,
+                                    genero: personajeEdit.genero,
+                                    origen: personajeEdit.origen,
+                                    habilidad: personajeEdit.habilidad,
+                                    descripcion: personajeEdit.descripcion,
+                                    urlImagen: personajeEdit.urlImagen
+                                  })
+                                });
+                                
+                                if (res.ok) {
+                                  Alert.alert('✅ Actualizado', 'Personaje actualizado correctamente');
+                                } else {
+                                  const errorText = await res.text().catch(() => 'Error desconocido');
+                                  console.error('❌ Error al actualizar:', res.status, errorText);
+                                  Alert.alert('❌ Error', `No se pudo actualizar el personaje.\nEstado: ${res.status}\nURL: ${urlUpdate}\nDetalle: ${errorText}`);
+                                }
+                              };
+
+                              // Para web, ejecutar directamente después de confirm
+                              if (Platform.OS === 'web') {
+                                await actualizarPersonaje();
                               }
                             } catch (error) {
                               console.error('❌ Error de conexión:', error);
@@ -934,31 +965,62 @@ const TabIndexScreen: React.FC = () => {
                                     title="Eliminar esta habilidad" 
                                     color="#e74c3c" 
                                     onPress={async () => {
-                                      try {
-                                        const API_BASE_HABILIDADES = personajeEdit.fuente === 'MongoDB' 
-                                          ? APIS[0].habilidades 
-                                          : APIS[1].habilidades;
-                                        
-                                        const urlDelete = `${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`;
-                                        console.log('🗑️ Eliminando habilidad:', habilidad.nombre, 'del personaje:', personajeEdit.nombre, 'URL:', urlDelete);
-                                        
-                                        const res = await fetchWithAuth(urlDelete, {
-                                          method: 'DELETE'
-                                        });
-                                        
-                                        if (res.ok) {
-                                          Alert.alert('✅ Eliminada', 'Habilidad eliminada correctamente');
-                                          // Actualizar la lista
-                                          const nuevas = habilidadesEdit.filter((_, i) => i !== idx);
-                                          setHabilidadesEdit(nuevas);
-                                        } else {
-                                          const errorText = await res.text().catch(() => 'Error desconocido');
-                                          console.error('❌ Error al eliminar habilidad:', res.status, errorText);
-                                          Alert.alert('❌ Error', `No se pudo eliminar la habilidad\nEstado: ${res.status}\nURL: ${urlDelete}\nDetalle: ${errorText}`);
+                                      // Pop-up de confirmación para eliminar habilidad
+                                      if (Platform.OS === 'web') {
+                                        if (!window.confirm(`¿Eliminar la habilidad "${habilidad.nombre}" de ${personajeEdit.nombre}?`)) {
+                                          return;
                                         }
-                                      } catch (error) {
-                                        console.error('❌ Error de conexión:', error);
-                                        Alert.alert('❌ Error de conexión', `No se pudo conectar al servidor\nDetalle: ${error}`);
+                                      } else {
+                                        Alert.alert(
+                                          '🗑️ Confirmar Eliminación',
+                                          `¿Deseas eliminar la habilidad "${habilidad.nombre}" de ${personajeEdit.nombre}?`,
+                                          [
+                                            { text: 'Cancelar', style: 'cancel' },
+                                            {
+                                              text: 'Eliminar',
+                                              style: 'destructive',
+                                              onPress: async () => {
+                                                await eliminarHabilidad();
+                                              }
+                                            }
+                                          ]
+                                        );
+                                        return;
+                                      }
+
+                                      // Función para eliminar habilidad
+                                      const eliminarHabilidad = async () => {
+                                        try {
+                                          const API_BASE_HABILIDADES = personajeEdit.fuente === 'MongoDB' 
+                                            ? APIS[0].habilidades 
+                                            : APIS[1].habilidades;
+                                          
+                                          const urlDelete = `${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`;
+                                          console.log('🗑️ Eliminando habilidad:', habilidad.nombre, 'del personaje:', personajeEdit.nombre, 'URL:', urlDelete);
+                                          
+                                          const res = await fetchWithAuth(urlDelete, {
+                                            method: 'DELETE'
+                                          });
+                                          
+                                          if (res.ok) {
+                                            Alert.alert('✅ Eliminada', 'Habilidad eliminada correctamente');
+                                            // Actualizar la lista
+                                            const nuevas = habilidadesEdit.filter((_, i) => i !== idx);
+                                            setHabilidadesEdit(nuevas);
+                                          } else {
+                                            const errorText = await res.text().catch(() => 'Error desconocido');
+                                            console.error('❌ Error al eliminar habilidad:', res.status, errorText);
+                                            Alert.alert('❌ Error', `No se pudo eliminar la habilidad\nEstado: ${res.status}\nURL: ${urlDelete}\nDetalle: ${errorText}`);
+                                          }
+                                        } catch (error) {
+                                          console.error('❌ Error de conexión:', error);
+                                          Alert.alert('❌ Error de conexión', `No se pudo conectar al servidor\nDetalle: ${error}`);
+                                        }
+                                      };
+
+                                      // Para web, ejecutar directamente después de confirm
+                                      if (Platform.OS === 'web') {
+                                        await eliminarHabilidad();
                                       }
                                     }}
                                   />)}
@@ -968,52 +1030,83 @@ const TabIndexScreen: React.FC = () => {
                                 title="Actualizar Habilidades" 
                                 color="#4CAF50" 
                                 onPress={async () => {
-                                  try {
-                                    const API_BASE_HABILIDADES = personajeEdit.fuente === 'MongoDB' 
-                                      ? APIS[0].habilidades 
-                                      : APIS[1].habilidades;
-                                    
-                                    let errores = 0;
-                                    let exitosos = 0;
-                                    
-                                    // Actualizar cada habilidad por nombre
-                                    for (const habilidad of habilidadesEdit) {
-                                      if (!habilidad.nombre || !habilidad.nombre.trim()) {
-                                        console.warn('⚠️ Saltando habilidad sin nombre');
-                                        continue;
+                                  // Pop-up de confirmación
+                                  if (Platform.OS === 'web') {
+                                    if (!window.confirm(`¿Confirmas actualizar ${habilidadesEdit.length} habilidad(es) de ${personajeEdit.nombre} en ${personajeEdit.fuente}?`)) {
+                                      return;
+                                    }
+                                  } else {
+                                    Alert.alert(
+                                      '🔄 Confirmar Actualización',
+                                      `¿Deseas actualizar ${habilidadesEdit.length} habilidad(es) de ${personajeEdit.nombre} en ${personajeEdit.fuente}?`,
+                                      [
+                                        { text: 'Cancelar', style: 'cancel' },
+                                        {
+                                          text: 'Actualizar',
+                                          style: 'default',
+                                          onPress: async () => {
+                                            await actualizarHabilidades();
+                                          }
+                                        }
+                                      ]
+                                    );
+                                    return; // Salir aquí para mobile
+                                  }
+
+                                  // Función para actualizar habilidades
+                                  const actualizarHabilidades = async () => {
+                                    try {
+                                      const API_BASE_HABILIDADES = personajeEdit.fuente === 'MongoDB' 
+                                        ? APIS[0].habilidades 
+                                        : APIS[1].habilidades;
+                                      
+                                      let errores = 0;
+                                      let exitosos = 0;
+                                      
+                                      // Actualizar cada habilidad por nombre
+                                      for (const habilidad of habilidadesEdit) {
+                                        if (!habilidad.nombre || !habilidad.nombre.trim()) {
+                                          console.warn('⚠️ Saltando habilidad sin nombre');
+                                          continue;
+                                        }
+                                        
+                                        const urlUpdate = `${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`;
+                                        console.log('🔄 Actualizando habilidad:', habilidad.nombre, 'URL:', urlUpdate);
+                                        
+                                        const res = await fetchWithAuth(urlUpdate, {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            nombre: habilidad.nombre,
+                                            tipo: habilidad.tipo,
+                                            descripcion: habilidad.descripcion,
+                                            personaje: habilidad.personaje
+                                          })
+                                        });
+                                        
+                                        if (res.ok) {
+                                          exitosos++;
+                                        } else {
+                                          errores++;
+                                          const errorText = await res.text().catch(() => 'Error desconocido');
+                                          console.error('❌ Error actualizando habilidad:', habilidad.nombre, res.status, errorText);
+                                        }
                                       }
                                       
-                                      const urlUpdate = `${API_BASE_HABILIDADES}/${encodeURIComponent(habilidad.nombre)}/${encodeURIComponent(personajeEdit.nombre)}`;
-                                      console.log('🔄 Actualizando habilidad:', habilidad.nombre, 'URL:', urlUpdate);
-                                      
-                                      const res = await fetchWithAuth(urlUpdate, {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          nombre: habilidad.nombre,
-                                          tipo: habilidad.tipo,
-                                          descripcion: habilidad.descripcion,
-                                          personaje: habilidad.personaje
-                                        })
-                                      });
-                                      
-                                      if (res.ok) {
-                                        exitosos++;
+                                      if (errores === 0) {
+                                        Alert.alert('✅ Actualizado', `${exitosos} habilidad(es) actualizadas correctamente`);
                                       } else {
-                                        errores++;
-                                        const errorText = await res.text().catch(() => 'Error desconocido');
-                                        console.error('❌ Error actualizando habilidad:', habilidad.nombre, res.status, errorText);
+                                        Alert.alert('⚠️ Parcialmente actualizado', `${exitosos} exitosas, ${errores} con errores. Revisa la consola para detalles.`);
                                       }
+                                    } catch (error) {
+                                      console.error('❌ Error de conexión:', error);
+                                      Alert.alert('❌ Error', `No se pudo actualizar las habilidades\nDetalle: ${error}`);
                                     }
-                                    
-                                    if (errores === 0) {
-                                      Alert.alert('✅ Actualizado', `${exitosos} habilidad(es) actualizadas correctamente`);
-                                    } else {
-                                      Alert.alert('⚠️ Parcialmente actualizado', `${exitosos} exitosas, ${errores} con errores. Revisa la consola para detalles.`);
-                                    }
-                                  } catch (error) {
-                                    console.error('❌ Error de conexión:', error);
-                                    Alert.alert('❌ Error', `No se pudo actualizar las habilidades\nDetalle: ${error}`);
+                                  };
+
+                                  // Para web, ejecutar directamente después de confirm
+                                  if (Platform.OS === 'web') {
+                                    await actualizarHabilidades();
                                   }
                                 }}
                               />)}
